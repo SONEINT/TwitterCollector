@@ -7,6 +7,7 @@
 	<version>0.0.1</version>
 	<name>twitterDataAcquisition Maven Webapp</name>
 	<url>http://maven.apache.org</url>
+	
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
@@ -59,5 +60,19 @@
 	</dependencies>
 	<build>
 		<finalName>twitterDataAcquisition</finalName>
+		 <plugins>
+	      <plugin>
+	        <groupId>org.codehaus.mojo</groupId>
+	        <artifactId>exec-maven-plugin</artifactId>
+	        <version>1.1</version>
+	        <executions>
+	          <execution>
+	            <goals>
+	              <goal>java</goal>
+	            </goals>
+	          </execution>
+	        </executions>
+	      </plugin>
+	    </plugins>
 	</build>
 </project>

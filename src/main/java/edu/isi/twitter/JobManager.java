@@ -86,7 +86,7 @@ public class JobManager {
 		        logger.info("Start Index: " + startIndex);
 		        logger.info("End Index: " + endIndex);
 			}
-			
+			m.close();
 			// wait for the all the threads to finish before starting again
 			for (Thread t : allThreads) {
 				try {
