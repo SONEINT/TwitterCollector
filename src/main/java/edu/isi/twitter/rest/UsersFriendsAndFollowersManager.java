@@ -1,6 +1,14 @@
 package edu.isi.twitter.rest;
 
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import twitter4j.Twitter;
+import twitter4j.TwitterFactory;
+import twitter4j.conf.ConfigurationBuilder;
 
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -10,39 +18,48 @@ import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler;
+import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
+import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 
 public class UsersFriendsAndFollowersManager implements Runnable {
 
+	ConfigurationBuilder cb;
+	
+	private static Logger logger = LoggerFactory.getLogger(UsersFriendsAndFollowersManager.class);
+	
+	public UsersFriendsAndFollowersManager(ConfigurationBuilder cb) {
+		this.cb = cb;
+	}
+	
 	public void run() {
-		Mongo m;
 		try {
-			m = MongoDBHandler.getNewMongoConnection();
-			DB twitterDb = m.getDB(TwitterMongoDBHandler.DB_NAME);
-			DBCollection usersGraphListColl = twitterDb.getCollection("usersGraphListTest");
-			DBCollection usersGraphColl = twitterDb.getCollection("usersGraph");
-			DBCollection usersGraphActionListColl = twitterDb.getCollection("usersGraphActionList");
+			Mongo m = MongoDBHandler.getNewMongoConnection();
+			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
+			DBCollection usersGraphListColl = twitterDb.getCollection(TwitterCollections.usersgraphlist.name());
+			DBCollection usersGraphColl = twitterDb.getCollection(TwitterCollections.usersGraph.name());
+			DBCollection usersGraphActionListColl = twitterDb.getCollection(TwitterCollections.usersGraphActionList.name());
+			Twitter authenticatedTwitter = new TwitterFactory(cb.build()).getInstance();
 			
-			DBCursor cursor = usersGraphListColl.find();
-			while (cursor.hasNext()) {
-				DBObject user = cursor.next();
-				UserFriendNetworkFetcher f = new UserFriendNetworkFetcher(user.get("name").toString());
-				f.fetchAndStoreInDB(usersGraphColl, usersGraphActionListColl);
+			while (true) {
+				DBCursor cursor = usersGraphListColl.find();
+				while (cursor.hasNext()) {
+					DBObject user = cursor.next();
+					UserFriendNetworkFetcher f = new UserFriendNetworkFetcher(user.get("name").toString());
+					f.fetchAndStoreInDB(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
+				}
+				
+				// Making thread sleep for some time
+				try {
+					Thread.sleep(TimeUnit.SECONDS.toMillis(30L));
+				} catch (InterruptedException e) {
+					logger.error("InterruptedException", e);
+				}
 			}
-			
 		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("UnknownHostException", e);
 		} catch (MongoException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("MongoException", e);
 		}
 		
-	}
-
-	
-	public static void main (String[] args) {
-		Thread t = new Thread(new UsersFriendsAndFollowersManager());
-		t.start();
 	}
 }

@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import twitter4j.Twitter;
 import twitter4j.TwitterFactory;
@@ -21,7 +23,8 @@ import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler;
+import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
+import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 
 public class UsersHistoricalTweetsFetcherThread implements Runnable {
 	private int startIndex;
@@ -30,6 +33,8 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
 	
 	private static int MAX_DAYS_TO_WAIT_FOR_NEXT_QUERY = 14;
 	private static int TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS = 14;
+	
+	private static Logger logger = LoggerFactory.getLogger(UsersHistoricalTweetsFetcherThread.class);
 	
 	public UsersHistoricalTweetsFetcherThread(int startIndex, int endIndex, ConfigurationBuilder cb) {
 		this.startIndex = startIndex;
@@ -43,22 +48,20 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
 			m = MongoDBHandler.getNewMongoConnection();
 			m.setWriteConcern(WriteConcern.SAFE);
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+			logger.error("UnknownHostException", e);
 		} catch (MongoException e) {
-			e.printStackTrace();
+			logger.error("MongoException", e);
 		}
 		
 		if(m == null) {
-			System.out.println("Error getting connection to MongoDB! Cannot proceed with this thread.");
+			logger.error("Error getting connection to MongoDB! Cannot proceed with this thread.");
 			return;
 		}
 		
-		DB twitterDb = m.getDB(TwitterMongoDBHandler.DB_NAME);
-		// DBCollection userColl = twitterDb.getCollection("users");
-		DBCollection userColl = twitterDb.getCollection("SingleUserTest");
-//		DBCollection tweetsColl = twitterDb.getCollection("tweets");
-		DBCollection tweetsColl = twitterDb.getCollection("tweetstest");
-		DBCollection usersFromTweetMentionsColl = twitterDb.getCollection("usersFromTweetMentions");
+		DB twitterDb = m.getDB(TwitterApplication.twitter.name());
+		DBCollection userColl = twitterDb.getCollection(TwitterCollections.users.name());
+		DBCollection tweetsColl = twitterDb.getCollection(TwitterCollections.tweets.name());
+		DBCollection usersFromTweetMentionsColl = twitterDb.getCollection(TwitterCollections.usersFromTweetMentions.name());
 		
         //query.put("uid", new BasicDBObject("$gte", startIndex).append("$lte", endIndex)); // Useless code
         
@@ -75,7 +78,7 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
             	Double d = Double.parseDouble(user.get("uid").toString());
             	long uid = d.longValue();
             	
-            	System.out.println("User: " + user.get("name"));
+            	logger.info("Current user for fetching timeline: " + user.get("name"));
             	
             	/** Check if the user's timeline needs to be updated **/
             	boolean userUpdateRequired = isUserUpdateRequired(user); 
@@ -85,7 +88,6 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
             	/** Fetch the user's timeline **/
             	UserTimelineFetcher f = new UserTimelineFetcher(uid, authenticatedTwitter);
             	boolean success = f.fetchAndStoreInDB(tweetsColl, userColl, usersFromTweetMentionsColl, false);
-            	System.out.println("Success value " + success);
             	if (success) {
             		try {
             			user.put("lastUpdated", new Date());
@@ -105,8 +107,7 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
             	        
                 		userColl.save(user);
             		} catch (MongoException me) {
-            			System.out.println("Error saving user's last updated time stamp.");
-            			System.err.println(me.getMessage());
+            			logger.error("Error saving user's last updated time stamp.", me);
             		}
             	}
             }
@@ -122,8 +123,8 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
     		long nextUpdatedDuration = Long.parseLong(user.get("nextUpdateAfter").toString());
     		DateTime dateToBeUpdated = new DateTime(d.getMillis() + nextUpdatedDuration);
     		
-    		System.out.println("LastUpdatedDate" + d.toDate());
-    		System.out.println("Date to be updated: " + dateToBeUpdated.toDate());
+    		logger.debug("LastUpdatedDate" + d.toDate());
+    		logger.debug("Date to be updated: " + dateToBeUpdated.toDate());
     		
     		if(dateToBeUpdated.isBefore(new DateTime().getMillis()))
     			return true;
@@ -136,18 +137,18 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
 	private long getNextUpdateValueForTheUser(DBCollection tweetsColl, long uid) {
 		// Today's time
 		Calendar date = Calendar.getInstance();
-		System.out.println("Todays date: " + date.getTime());
+		//System.out.println("Todays date: " + date.getTime());
 
 		// 2 week's before time
 		Calendar cldr = (Calendar) date.clone();
 		cldr.add(Calendar.HOUR, -(24* TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS));
-		System.out.println("Before date: " + cldr.getTime());
+		//System.out.println("Before date: " + cldr.getTime());
 		
 		// Count the number of tweets user had in last 2 week
 		BasicDBObject query = new BasicDBObject();
         query.put("tweetCreatedAt", new BasicDBObject("$gte", cldr.getTime()).append("$lte", date.getTime()));
         query.put("user.id", uid);
-		System.out.println("Number of tweets in 2 weeks: " + tweetsColl.find(query).count());
+		//System.out.println("Number of tweets in 2 weeks: " + tweetsColl.find(query).count());
 		int numberOfTweets = tweetsColl.find(query).count();
 		
 		// Calculate time required by the user to reach 200 tweets

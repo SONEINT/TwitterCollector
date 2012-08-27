@@ -23,7 +23,7 @@ public class UserFriendNetworkFetcherCaller {
 			DB db = m.getDB("twitter");
 			DBCollection coll = db.getCollection("tweets");
 			
-			UserFriendNetworkFetcher f = new UserFriendNetworkFetcher("funnyhumour");
+//			UserFriendNetworkFetcher f = new UserFriendNetworkFetcher("funnyhumour");
 //			f.fetchAndStoreInDB(coll);
 			m.close();
 		} catch (UnknownHostException e) {

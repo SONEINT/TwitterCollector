@@ -2,26 +2,30 @@ package edu.isi.db;
 
 import java.net.UnknownHostException;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
-import com.mongodb.util.JSON;
 
 public class TwitterMongoTest {
 
 	public static void main(String[] args) throws UnknownHostException, MongoException {
 		Mongo m = MongoDBHandler.getNewMongoConnection();
 		DB db = m.getDB("twitter");
+		DBCollection coll = db.getCollection("users");
 		
-		DBCollection coll = db.getCollection("tweets");
+		long uid = 12;
 		
-		String json = "{'database' : 'mkyongDB','table' : 'hosting'," +
-				"'detail' : {'records' : 99, 'index' : 'vps_index1', 'active' : 'true'}}}";
-		 
-		DBObject dbObject = (DBObject)JSON.parse(json);
-		coll.insert(dbObject);
+		System.out.println(coll.findOne(new BasicDBObject("uid", uid)).get("name"));
+		
+//		DBCollection coll = db.getCollection("tweets");
+		
+//		String json = "{'database' : 'mkyongDB','table' : 'hosting'," +
+//				"'detail' : {'records' : 99, 'index' : 'vps_index1', 'active' : 'true'}}}";
+//		 
+//		DBObject dbObject = (DBObject)JSON.parse(json);
+//		coll.insert(dbObject);
 	}
 
 }

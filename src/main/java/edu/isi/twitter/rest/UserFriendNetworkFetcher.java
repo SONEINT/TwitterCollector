@@ -2,14 +2,15 @@ package edu.isi.twitter.rest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import twitter4j.IDs;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
-import twitter4j.TwitterFactory;
-import twitter4j.conf.ConfigurationBuilder;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -18,25 +19,23 @@ import com.mongodb.DBObject;
 
 public class UserFriendNetworkFetcher {
 	private String screenName;
-	private Twitter unauthenticatedTwitter;
 
+	private static Logger logger = LoggerFactory.getLogger(UserFriendNetworkFetcher.class);
+	
 	public enum UserAction {
 		init, add, delete
 	}
 	
 	public UserFriendNetworkFetcher(String userScreenName) {
 		this.screenName = userScreenName;
-		ConfigurationBuilder cb = new ConfigurationBuilder();
-		unauthenticatedTwitter = new TwitterFactory(cb.build()).getInstance();
 	}
 
-	// TODO User authenticated twitter!
-	public void fetchAndStoreInDB(DBCollection usersGraphColl, DBCollection usersGraphActionListColl) {
-		addFriends(usersGraphColl, usersGraphActionListColl);
-		addFollowers(usersGraphColl, usersGraphActionListColl);
+	public void fetchAndStoreInDB(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
+		addFriends(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
+		addFollowers(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
 	}
 
-	private void addFriends(DBCollection usersGraphColl, DBCollection usersGraphActionListColl) {
+	private void addFriends(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
 		try {
 			/** Get all the existing friends of the user from the Database **/
 			DBCursor friendCursor = usersGraphColl.find(new BasicDBObject("name", screenName).append("link_type", "friend"));
@@ -50,9 +49,8 @@ public class UserFriendNetworkFetcher {
 			long cursor = -1;
 			IDs ids;
 			List<Long> friendsTwitterList = new ArrayList<Long>();
-			System.out.println("Listing friend ids.");
 			do {
-				ids = unauthenticatedTwitter.getFriendsIDs(screenName, cursor);
+				ids = authenticatedTwitter.getFriendsIDs(screenName, cursor);
 				DateTime now = new DateTime();
 				for (long id : ids.getIDs()) {
 					friendsTwitterList.add(id);
@@ -101,15 +99,20 @@ public class UserFriendNetworkFetcher {
 					usersGraphActionListColl.save(query);
 				}
 			}
-		} catch (TwitterException te) {
-			te.printStackTrace();
-			System.out
-					.println("Failed to get friends' ids: " + te.getMessage());
-			System.exit(-1);
+		} catch (TwitterException e) {
+			if(e.exceededRateLimitation()) {
+				try {
+					Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRetryAfter()));
+					// Try again
+					addFriends(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
+				} catch (InterruptedException e1) {
+					logger.error("InterruptedException", e1);
+				}
+			}
 		}
 	}
 	
-	private void addFollowers(DBCollection usersGraphColl, DBCollection usersGraphActionListColl) {
+	private void addFollowers(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
 		try {
 			/** Get all the existing followers of the user from the Database **/
 			DBCursor followerCursor = usersGraphColl.find(new BasicDBObject("name", screenName).append("link_type", "follower"));
@@ -123,9 +126,8 @@ public class UserFriendNetworkFetcher {
 			long cursor = -1;
 			IDs ids = null;
 			List<Long> followerTwitterList = new ArrayList<Long>();
-			System.out.println("Listing follower ids.");
 			do {
-				ids = unauthenticatedTwitter.getFollowersIDs(screenName, cursor);
+				ids = authenticatedTwitter.getFollowersIDs(screenName, cursor);
 				DateTime now = new DateTime();
 				for (long id : ids.getIDs()) {
 					followerTwitterList.add(id);
@@ -174,11 +176,16 @@ public class UserFriendNetworkFetcher {
 					usersGraphActionListColl.save(query);
 				}
 			}
-		} catch (TwitterException te) {
-			te.printStackTrace();
-			System.out
-					.println("Failed to get friends' ids: " + te.getMessage());
-			System.exit(-1);
+		} catch (TwitterException e) {
+			if(e.exceededRateLimitation()) {
+				try {
+					Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRetryAfter()));
+					// Try again
+					addFollowers(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
+				} catch (InterruptedException e1) {
+					logger.error("InterruptedException", e1);
+				}
+			}
 		}
 	}
 }

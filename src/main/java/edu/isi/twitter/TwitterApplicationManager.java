@@ -15,7 +15,7 @@ import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler;
+import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.twitter.JobManager.TwitterAccountKeys;
 
 public class TwitterApplicationManager {
@@ -28,7 +28,7 @@ public class TwitterApplicationManager {
 		Mongo m = null;
 		try {
 			m = MongoDBHandler.getNewMongoConnection();
-			DB twitterDb = m.getDB(TwitterMongoDBHandler.DB_NAME);
+			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			
 			/** Get the applications access tokens and keys information **/
 			DBCollection appsColl = twitterDb.getCollection("applications");
@@ -52,28 +52,8 @@ public class TwitterApplicationManager {
 		return appConfigs;
 	}
 	
-	public static ConfigurationBuilder getSingleConfigurationBuilderByTag(ApplicationTag tag) {
-		ConfigurationBuilder config = null;
-		Mongo m = null;
-		try {
-			m = MongoDBHandler.getNewMongoConnection();
-			DB twitterDb = m.getDB(TwitterMongoDBHandler.DB_NAME);
-			DBCollection appsColl = twitterDb.getCollection("applications");
-			
-			DBObject appObj = appsColl.findOne(new BasicDBObject("tag", tag.name()));
-			if(appObj == null) {
-				System.out.println();
-				return null;
-			}
-			config = buildConfigurationBuilder(appObj);
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (MongoException e) {
-			e.printStackTrace();
-		} finally {
-			m.close();
-		}
-		return config;
+	public static ConfigurationBuilder getOneConfigurationBuilderByTag(ApplicationTag tag) {
+		return getAllConfigurationBuildersByTag(tag).get(0);
 	}
 	
 	public static List<ConfigurationBuilder> getAllConfigurationBuildersByTag(ApplicationTag tag) {
@@ -81,7 +61,7 @@ public class TwitterApplicationManager {
 		Mongo m = null;
 		try {
 			m = MongoDBHandler.getNewMongoConnection();
-			DB twitterDb = m.getDB(TwitterMongoDBHandler.DB_NAME);
+			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			DBCollection appsColl = twitterDb.getCollection("applications");
 			
 			DBCursor appCursor = appsColl.find(new BasicDBObject("tag", tag.name()));

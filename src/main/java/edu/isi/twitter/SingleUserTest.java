@@ -12,7 +12,7 @@ import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler;
+import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.twitter.JobManager.TwitterAccountKeys;
 import edu.isi.twitter.rest.UsersHistoricalTweetsFetcherThread;
 
@@ -22,7 +22,7 @@ public class SingleUserTest {
 		
 		try {
 			Mongo m = MongoDBHandler.getNewMongoConnection();
-			DB twitterDb = m.getDB(TwitterMongoDBHandler.DB_NAME);
+			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			
 			/** Get the applications access tokens and keys information **/
 			DBCollection appsColl = twitterDb.getCollection("applications");

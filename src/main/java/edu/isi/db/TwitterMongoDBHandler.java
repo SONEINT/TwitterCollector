@@ -4,6 +4,11 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import twitter4j.UserMentionEntity;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -14,17 +19,22 @@ import com.mongodb.MongoException;
 
 public class TwitterMongoDBHandler {
 	
-	public static String DB_NAME = "twitter";
-	public static String USERS_TABLE_NAME = "users";
-	public static String TWEETS_TABLE_NAME = "tweets";
+	private static Logger logger = LoggerFactory.getLogger(TwitterMongoDBHandler.class);
+	public enum TwitterApplication {
+		twitter
+	}
 	
-	public long[] getUserIdList() throws UnknownHostException, MongoException {
+	public enum TwitterCollections {
+		users, tweets, usersFromTweetMentions, usersGraph, usersGraphActionList, usersgraphlist
+	}
+	
+	public static long[] getCurrentFollowUserIdList() throws UnknownHostException, MongoException {
 		Mongo m = MongoDBHandler.getNewMongoConnection();
-		DB db = m.getDB(DB_NAME);
+		DB db = m.getDB(TwitterApplication.twitter.name());
 		
 		BasicDBObject query = new BasicDBObject();
 		query.put("follow", 1);
-		DBCollection coll = db.getCollection(USERS_TABLE_NAME);
+		DBCollection coll = db.getCollection(TwitterCollections.users.name());
 		
 		List<Long> userIds = new ArrayList<Long>();
 		DBCursor cursor = coll.find(query);
@@ -36,8 +46,7 @@ public class TwitterMongoDBHandler {
             		userIds.add(Long.parseLong(obj.get("uid").toString()));
             	}
             }
-            System.out.println(userIds);
-            System.out.println(userIds.size());
+            logger.info("List of users to be followed by the stream: " + userIds + ". \nSize: " + userIds.size());
         } finally {
             cursor.close();
         }
@@ -49,5 +58,25 @@ public class TwitterMongoDBHandler {
         }
         m.close();
         return arr;
+	}
+	
+	public static void addToUsersCollection(UserMentionEntity[] mentionEntities, DBCollection userColl, DBCollection usersFromTweetMentionsColl) {
+		for (UserMentionEntity userMention : mentionEntities) {
+			try {
+				long uid = userMention.getId();
+				// Add the user if he does not exists
+				if(userColl.find(new BasicDBObject("uid", uid)).count() == 0 && usersFromTweetMentionsColl.find(new BasicDBObject("uid", uid)).count() == 0) {
+					BasicDBObject userObj = new BasicDBObject();
+					userObj.put("uid", new Long(uid).doubleValue());
+					userObj.put("name", userMention.getScreenName());
+					userObj.put("addedFromTweetMentions", true);
+					userObj.put("incomplete", 1);
+					usersFromTweetMentionsColl.save(userObj);
+				}
+			} catch (Exception e) {
+				logger.error("Error occured while adding tweet mention user: " + userMention.getName(), e);
+				continue;
+			}
+		}
 	}
 }

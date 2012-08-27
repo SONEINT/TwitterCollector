@@ -2,6 +2,9 @@ package edu.isi.twitter.streaming;
 
 import java.net.UnknownHostException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
@@ -17,34 +20,43 @@ import com.mongodb.util.JSON;
 
 import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler;
+import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
+import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 
 
 public class TwitterStreamListener implements StatusListener {
 	Mongo m;
 	DB twitterDb;
 	DBCollection tweetCollection;
+	DBCollection userColl;
+	DBCollection usersFromTweetMentionsColl;
+	
+	private static Logger logger = LoggerFactory.getLogger(TwitterStreamListener.class);
 	
 	public TwitterStreamListener() throws UnknownHostException, MongoException {
 		m = MongoDBHandler.getNewMongoConnection();
-		twitterDb = m.getDB(TwitterMongoDBHandler.DB_NAME);
-		tweetCollection = twitterDb.getCollection("tweets");
+		twitterDb = m.getDB(TwitterApplication.twitter.name());
+		tweetCollection = twitterDb.getCollection(TwitterCollections.tweets.name());
+		userColl = twitterDb.getCollection(TwitterCollections.users.name());
+		usersFromTweetMentionsColl = twitterDb.getCollection(TwitterCollections.usersFromTweetMentions.name());
 	}
 	
 	public void onStatus(Status status) {
-		/*** Store the tweet into the database ***/
-		String json = DataObjectFactory.getRawJSON(status);
-		DBObject dbObject = (DBObject)JSON.parse(json);
-		tweetCollection.insert(dbObject);
-		
-		/*** Check if any user was mentioned. If yes, then check if his user id needs to saved in the users table ***/
-		UserMentionEntity[] mentionedEntities = status.getUserMentionEntities();
-		if(mentionedEntities != null && mentionedEntities.length != 0) {
-			for (UserMentionEntity mentionedEntity : mentionedEntities) {
-				System.out.println(mentionedEntity);
+		try {
+			/*** Store the tweet into the database ***/
+			String json = DataObjectFactory.getRawJSON(status);
+			DBObject dbObject = (DBObject)JSON.parse(json);
+			tweetCollection.insert(dbObject);
+			
+			logger.info("Received tweet from stream: " + status.getText());
+			/*** Check if any user was mentioned. If yes, then check if his user id needs to saved in the users table ***/
+			UserMentionEntity[] mentionedEntities = status.getUserMentionEntities();
+			if(mentionedEntities != null && mentionedEntities.length != 0) {
+				TwitterMongoDBHandler.addToUsersCollection(mentionedEntities, userColl, usersFromTweetMentionsColl);
 			}
-		}
-				
-        System.out.println("@" + status.getUser().getScreenName() + " - " + status.getText());
+		} catch (MongoException e) {
+			logger.error("Mongo Exception!", e);
+		}	
     }
 
     public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
