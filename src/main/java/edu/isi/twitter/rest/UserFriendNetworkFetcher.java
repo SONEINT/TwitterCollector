@@ -54,9 +54,7 @@ public class UserFriendNetworkFetcher {
 				DateTime now = new DateTime();
 				for (long id : ids.getIDs()) {
 					friendsTwitterList.add(id);
-					DBObject query = new BasicDBObject("name", screenName)
-						.append("link_user_id", id)
-						.append("link_type", "friend");
+					DBObject query = new BasicDBObject("name", screenName).append("link_user_id", id).append("link_type", "friend");
 					// If link already exists
 					if (usersGraphColl.find(query).count() != 0) {
 						DBObject user = usersGraphColl.findOne(query); 
@@ -68,10 +66,7 @@ public class UserFriendNetworkFetcher {
 						usersGraphColl.save(query);
 						
 						// Initialize the link in userGraphAction table
-						DBObject initAction = new BasicDBObject("name", screenName)
-							.append("link_user_id", id)
-							.append("link_type", "friend")
-							.append("date", now.toDate());
+						DBObject initAction = new BasicDBObject("name", screenName).append("link_user_id", id).append("link_type", "friend").append("date", now.toDate());
 						
 						if(friendDBList.size() == 0)
 							initAction.put("action", UserAction.init.name());
@@ -82,7 +77,7 @@ public class UserFriendNetworkFetcher {
 				}
 			} while ((cursor = ids.getNextCursor()) != 0);
 			
-			/** Add remove action for any friend of the user that is present in db list but not in the current Twitter friend list **/
+			/** Add "remove" action for any friend of the user that is present in db list but not in the current Twitter friend list **/
 			friendDBList.removeAll(friendsTwitterList);
 			for (Long removedFriendId : friendDBList) {
 				// Check if the delete link already exists

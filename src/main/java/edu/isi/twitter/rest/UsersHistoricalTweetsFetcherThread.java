@@ -64,7 +64,7 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
 		DBCollection usersFromTweetMentionsColl = twitterDb.getCollection(TwitterCollections.usersFromTweetMentions.name());
 		
         //query.put("uid", new BasicDBObject("$gte", startIndex).append("$lte", endIndex)); // Useless code
-        
+		
         DBCursor cursor = userColl.find();
         cursor.skip(startIndex);
         int userCounter = startIndex;
@@ -104,7 +104,7 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
             				if(latestTweetMaxId instanceof Long)
             					user.put("currentMaxId", latestTweetMaxId);
             			}
-            	        
+            	        user.put("onceDone", true);
                 		userColl.save(user);
             		} catch (MongoException me) {
             			logger.error("Error saving user's last updated time stamp.", me);
@@ -115,6 +115,7 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
             cursor.close();
         }
         m.close();
+        logger.info("Finished getting tweets for the application responsible for start index: " + startIndex + " and the end index: " + endIndex);
 	}
 
 	private boolean isUserUpdateRequired(DBObject user) {

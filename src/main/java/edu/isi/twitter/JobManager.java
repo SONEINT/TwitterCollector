@@ -1,6 +1,7 @@
 package edu.isi.twitter;
 
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -40,23 +41,24 @@ public class JobManager {
 	private static void runTwitterStreamListenerThread() {
 		logger.info("Starting Twitter stream listener thread");
 		Thread t = new Thread(new TwitterUsersStreamDumper(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.Streaming)));
-		t.run();
+		t.start();
 	}
 
 	private static void runUserProfileFillerThread() {
 		logger.info("Starting User profile lokup thread");
 		Thread t = new Thread(new UserProfileFiller(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup)));
-		t.run();
+		t.start();
 	}
 	
 	private static void runUserNetworkFetcherThread() {
 		logger.info("Starting user network fetcher thread");
 		Thread t = new Thread(new UsersFriendsAndFollowersManager(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserNetworkGraphFetcher)));
-		t.run();
+		t.start();
 	}
 
 	private static void runTwitterTimeLineFetcher() {
 		logger.info("Starting user's timeline fetcher thread");
+		List<Thread> allThreads = new ArrayList<Thread>();
 		try {
 			Mongo m = MongoDBHandler.getNewMongoConnection();
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
@@ -78,11 +80,24 @@ public class JobManager {
 		        int endIndex = (i != allConfigs.size()-1) ? new Long(i*interval + interval -1).intValue() : new Long(userColl.count()-1).intValue();
 		        
 		        Thread t = new Thread(new UsersHistoricalTweetsFetcherThread(startIndex, endIndex, config));
+		        allThreads.add(t);
 		        t.start();
 		        logger.info("Application # " + i);
 		        logger.info("Start Index: " + startIndex);
 		        logger.info("End Index: " + endIndex);
 			}
+			
+			// wait for the all the threads to finish before starting again
+			for (Thread t : allThreads) {
+				try {
+					t.join();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			logger.info("All timeline fetcher threads finished! Looping again ...");
+			// Run the method again when all the threads have finished
+			runTwitterTimeLineFetcher();
 			
 		} catch (UnknownHostException e) {
 			logger.error("Error occured with Mongo host!", e);
@@ -91,20 +106,4 @@ public class JobManager {
 		}
 		
 	}
-
-	/*
-	private static long getUIDAtInterval(DBCollection coll, int offset) {
-		System.out.println("Getting UID at interval: " + offset);
-		long uid = 0L;
-		DBCursor cursor = coll.find().skip(offset).limit(1);
-        while(cursor.hasNext()) {
-        	DBObject obj = cursor.next();
-        	if(obj.containsField("uid")) {
-        		uid = Long.parseLong(obj.get("uid").toString());
-        	}
-        }
-        cursor.close();
-        return uid;
-	}
-	*/
 }

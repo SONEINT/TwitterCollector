@@ -16,6 +16,7 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
+import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
@@ -34,6 +35,7 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 	public void run() {
 		try {
 			Mongo m = MongoDBHandler.getNewMongoConnection();
+			m.setWriteConcern(WriteConcern.SAFE);
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			DBCollection usersGraphListColl = twitterDb.getCollection(TwitterCollections.usersgraphlist.name());
 			DBCollection usersGraphColl = twitterDb.getCollection(TwitterCollections.usersGraph.name());
@@ -48,9 +50,11 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 					f.fetchAndStoreInDB(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
 				}
 				
-				// Making thread sleep for some time
+				// Making the thread sleep for some time before trying again
 				try {
+					logger.info("Making the network fetcher thread sleep before starting the loop again!");
 					Thread.sleep(TimeUnit.SECONDS.toMillis(30L));
+					logger.info("Waking up the network watcher thread!");
 				} catch (InterruptedException e) {
 					logger.error("InterruptedException", e);
 				}

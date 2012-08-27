@@ -20,6 +20,7 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
+import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
@@ -37,6 +38,7 @@ public class UserProfileFiller implements Runnable {
 	public void run() {
 		try {
 			Mongo m = MongoDBHandler.getNewMongoConnection();
+			m.setWriteConcern(WriteConcern.SAFE);
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			DBCollection usersFromTweetMentionsColl = twitterDb.getCollection(TwitterCollections.usersFromTweetMentions.name());
 			DBObject query = new BasicDBObject("incomplete", 1);
@@ -53,7 +55,6 @@ public class UserProfileFiller implements Runnable {
 					long uid = d.longValue();
 					
 					try {
-						userIds[counter++] = uid;
 						// Send the request for every 100 users
 						if (counter == 100 || !cursor.hasNext()) {
 							ResponseList<User> userList = authenticatedTwitter.lookupUsers(userIds);
@@ -72,11 +73,12 @@ public class UserProfileFiller implements Runnable {
 									logger.error("User not found!" + twitterUser.getName());
 								
 							}
-//							System.out.println("Sleeping");
+//							logger.info("Sleeping");
 							Thread.sleep(TimeUnit.SECONDS.toMillis(8L));
 //							System.out.println("Waking");
 							counter = 0;
 						}
+						userIds[counter++] = uid;
 					} catch (TwitterException e) {
 						if(e.exceededRateLimitation()) {
 							try {
@@ -98,7 +100,9 @@ public class UserProfileFiller implements Runnable {
 				}
 				// Making the thread sleep for some time before trying again
 				try {
+					logger.info("Making the profile lookup thread sleep before starting the loop again!");
 					Thread.sleep(TimeUnit.SECONDS.toMillis(30L));
+					logger.info("Waking up the profile lookup thread!");
 				} catch (InterruptedException e) {
 					logger.error("InterruptedException", e);
 				}
