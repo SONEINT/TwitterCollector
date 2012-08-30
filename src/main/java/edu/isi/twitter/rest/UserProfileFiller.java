@@ -22,6 +22,7 @@ import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
+import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 
@@ -36,7 +37,7 @@ public class UserProfileFiller implements Runnable {
 
 	public void run() {
 		try {
-			Mongo m = new Mongo("localhost", 27017 );
+			Mongo m = MongoDBHandler.getNewMongoConnection();
 			m.setWriteConcern(WriteConcern.SAFE);
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			DBCollection usersFromTweetMentionsColl = twitterDb.getCollection(TwitterCollections.usersFromTweetMentions.name());

@@ -11,6 +11,7 @@ import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
+import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.twitter.JobManager.TwitterAccountKeys;
 import edu.isi.twitter.rest.UsersHistoricalTweetsFetcherThread;
@@ -20,7 +21,7 @@ public class SingleUserTest {
 	public static void main(String[] args) {
 		
 		try {
-			Mongo m = new Mongo("localhost", 27017 );
+			Mongo m = MongoDBHandler.getNewMongoConnection();
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			
 			/** Get the applications access tokens and keys information **/

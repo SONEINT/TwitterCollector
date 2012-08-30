@@ -8,6 +8,8 @@ import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
+import edu.isi.db.MongoDBHandler;
+
 public class UserFriendNetworkFetcherCaller {
 
 	/**
@@ -16,7 +18,7 @@ public class UserFriendNetworkFetcherCaller {
 	public static void main(String[] args) {
 		Mongo m;
 		try {
-			m = new Mongo("localhost", 27017 );
+			m = MongoDBHandler.getNewMongoConnection();
 			m.setWriteConcern(WriteConcern.SAFE);
 			DB db = m.getDB("twitter");
 			DBCollection coll = db.getCollection("tweets");

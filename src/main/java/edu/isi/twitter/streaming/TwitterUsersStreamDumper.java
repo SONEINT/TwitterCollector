@@ -25,8 +25,7 @@ public class TwitterUsersStreamDumper implements Runnable {
 
 	public void run() {
 		try {
-			TwitterMongoDBHandler dbHndlr = new TwitterMongoDBHandler();
-			long[] userIdsToFollow = dbHndlr.getCurrentFollowUserIdList();
+			long[] userIdsToFollow = TwitterMongoDBHandler.getCurrentFollowUserIdList();
 //			long[] userIdsToFollow = {750028153};
 			FilterQuery fltrQry = new FilterQuery(userIdsToFollow);
 			

@@ -14,6 +14,7 @@ import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
+import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.twitter.JobManager.TwitterAccountKeys;
 
@@ -22,11 +23,11 @@ public class TwitterApplicationManager {
 		Streaming, UserTimelineFetcher, UserProfileLookup, UserNetworkGraphFetcher
 	}
 	
-	public List<ConfigurationBuilder> getAllApplicationConfigurations() {
+	public static List<ConfigurationBuilder> getAllApplicationConfigurations() {
 		List<ConfigurationBuilder> appConfigs = new ArrayList<ConfigurationBuilder>();
 		Mongo m = null;
 		try {
-			m = new Mongo("localhost", 27017 );
+			m = MongoDBHandler.getNewMongoConnection();
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			
 			/** Get the applications access tokens and keys information **/
@@ -51,15 +52,15 @@ public class TwitterApplicationManager {
 		return appConfigs;
 	}
 	
-	public ConfigurationBuilder getOneConfigurationBuilderByTag(ApplicationTag tag) {
+	public static ConfigurationBuilder getOneConfigurationBuilderByTag(ApplicationTag tag) {
 		return getAllConfigurationBuildersByTag(tag).get(0);
 	}
 	
-	public List<ConfigurationBuilder> getAllConfigurationBuildersByTag(ApplicationTag tag) {
+	public static List<ConfigurationBuilder> getAllConfigurationBuildersByTag(ApplicationTag tag) {
 		List<ConfigurationBuilder> appConfigs = new ArrayList<ConfigurationBuilder>();
 		Mongo m = null;
 		try {
-			m = new Mongo("localhost", 27017 );
+			m = MongoDBHandler.getNewMongoConnection();
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			DBCollection appsColl = twitterDb.getCollection("applications");
 			

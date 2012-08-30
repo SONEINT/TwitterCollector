@@ -35,7 +35,7 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 	
 	public void run() {
 		try {
-			Mongo m = new Mongo("localhost", 27017 );
+			Mongo m = MongoDBHandler.getNewMongoConnection();
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			DBCollection usersGraphListColl = twitterDb.getCollection(TwitterCollections.usersgraphlist.name());
 //			DBCollection usersGraphListColl = twitterDb.getCollection("usersGraphListTest");
@@ -80,8 +80,7 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 	}
 	
 	public static void main(String[] args) {
-		TwitterApplicationManager amgr = new TwitterApplicationManager();
-		UsersFriendsAndFollowersManager mgr = new UsersFriendsAndFollowersManager(amgr.getOneConfigurationBuilderByTag(ApplicationTag.UserNetworkGraphFetcher));
+		UsersFriendsAndFollowersManager mgr = new UsersFriendsAndFollowersManager(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserNetworkGraphFetcher));
 		mgr.run();
 	}
 }

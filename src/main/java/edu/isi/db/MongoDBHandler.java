@@ -8,7 +8,7 @@ import com.mongodb.MongoException;
 public class MongoDBHandler {
 	public static String HOSTNAME = "localhost";
 	
-	public Mongo getNewMongoConnection() throws UnknownHostException, MongoException {
+	public static Mongo getNewMongoConnection() throws UnknownHostException, MongoException {
 		return new Mongo(HOSTNAME, 27017 );
 	}
 

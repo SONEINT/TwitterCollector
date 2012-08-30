@@ -20,6 +20,7 @@ import com.mongodb.MongoException;
 public class TwitterMongoDBHandler {
 	
 	private static Logger logger = LoggerFactory.getLogger(TwitterMongoDBHandler.class);
+	
 	public enum TwitterApplication {
 		twitter
 	}
@@ -28,8 +29,8 @@ public class TwitterMongoDBHandler {
 		users, tweets, usersFromTweetMentions, usersGraph, usersGraphActionList, usersgraphlist, tweetsFromStream
 	}
 	
-	public long[] getCurrentFollowUserIdList() throws UnknownHostException, MongoException {
-		Mongo m = new Mongo("localhost", 27017 );
+	public static long[] getCurrentFollowUserIdList() throws UnknownHostException, MongoException {
+		Mongo m = MongoDBHandler.getNewMongoConnection();
 		DB db = m.getDB(TwitterApplication.twitter.name());
 		
 		BasicDBObject query = new BasicDBObject();
@@ -60,7 +61,7 @@ public class TwitterMongoDBHandler {
         return arr;
 	}
 	
-	public void addToUsersCollection(UserMentionEntity[] mentionEntities, DBCollection userColl, DBCollection usersFromTweetMentionsColl) {
+	public static void addToUsersCollection(UserMentionEntity[] mentionEntities, DBCollection userColl, DBCollection usersFromTweetMentionsColl) {
 		for (UserMentionEntity userMention : mentionEntities) {
 			try {
 				long uid = userMention.getId();

@@ -11,7 +11,7 @@ import com.mongodb.MongoException;
 public class TwitterMongoTest {
 
 	public static void main(String[] args) throws UnknownHostException, MongoException {
-		Mongo m = new Mongo("localhost", 27017 );
+		Mongo m = MongoDBHandler.getNewMongoConnection();
 		DB db = m.getDB("twitter");
 		DBCollection coll = db.getCollection("users");
 		
