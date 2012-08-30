@@ -20,7 +20,6 @@ import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
-import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 
@@ -43,7 +42,7 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
 	public void run() {
 		Mongo m = null;
 		try {
-			m = MongoDBHandler.getNewMongoConnection();
+			m = new Mongo("localhost", 27017 );
 			m.setWriteConcern(WriteConcern.SAFE);
 		} catch (UnknownHostException e) {
 			logger.error("UnknownHostException", e);

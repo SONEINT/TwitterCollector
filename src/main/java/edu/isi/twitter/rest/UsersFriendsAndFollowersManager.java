@@ -35,7 +35,7 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 	
 	public void run() {
 		try {
-			Mongo m = MongoDBHandler.getNewMongoConnection();
+			Mongo m = new Mongo("localhost", 27017 );
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			DBCollection usersGraphListColl = twitterDb.getCollection(TwitterCollections.usersgraphlist.name());
 //			DBCollection usersGraphListColl = twitterDb.getCollection("usersGraphListTest");

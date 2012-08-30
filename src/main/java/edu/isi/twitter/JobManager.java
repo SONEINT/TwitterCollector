@@ -14,7 +14,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
-import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
@@ -61,7 +60,7 @@ public class JobManager {
 		logger.info("Starting user's timeline fetcher thread");
 		List<Thread> allThreads = new ArrayList<Thread>();
 		try {
-			Mongo m = MongoDBHandler.getNewMongoConnection();
+			Mongo m = new Mongo("localhost", 27017 );
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			List<ConfigurationBuilder> allConfigs = mgr.getAllConfigurationBuildersByTag(ApplicationTag.UserTimelineFetcher);
 			

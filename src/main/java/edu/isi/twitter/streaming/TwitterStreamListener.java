@@ -19,7 +19,6 @@ import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 import com.mongodb.util.JSON;
 
-import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
@@ -31,16 +30,18 @@ public class TwitterStreamListener implements StatusListener {
 	DBCollection tweetCollection;
 	DBCollection userColl;
 	DBCollection usersFromTweetMentionsColl;
+	TwitterMongoDBHandler dbHndlr;
 	
 	private static Logger logger = LoggerFactory.getLogger(TwitterStreamListener.class);
 	
 	public TwitterStreamListener() throws UnknownHostException, MongoException {
-		m = MongoDBHandler.getNewMongoConnection();
+		m = new Mongo("localhost", 27017 );
 		m.setWriteConcern(WriteConcern.SAFE);
 		twitterDb = m.getDB(TwitterApplication.twitter.name());
 		tweetCollection = twitterDb.getCollection(TwitterCollections.tweetsFromStream.name());
 		userColl = twitterDb.getCollection(TwitterCollections.users.name());
 		usersFromTweetMentionsColl = twitterDb.getCollection(TwitterCollections.usersFromTweetMentions.name());
+		dbHndlr = new TwitterMongoDBHandler();
 	}
 	
 	public void onStatus(Status status) {
@@ -54,7 +55,7 @@ public class TwitterStreamListener implements StatusListener {
 			/*** Check if any user was mentioned. If yes, then check if his user id needs to saved in the users table ***/
 			UserMentionEntity[] mentionedEntities = status.getUserMentionEntities();
 			if(mentionedEntities != null && mentionedEntities.length != 0) {
-				TwitterMongoDBHandler.addToUsersCollection(mentionedEntities, userColl, usersFromTweetMentionsColl);
+				dbHndlr.addToUsersCollection(mentionedEntities, userColl, usersFromTweetMentionsColl);
 			}
 		} catch (MongoException e) {
 			logger.error("Mongo Exception!", e);

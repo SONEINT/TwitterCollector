@@ -14,7 +14,6 @@ import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
-import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.twitter.JobManager.TwitterAccountKeys;
 
@@ -27,7 +26,7 @@ public class TwitterApplicationManager {
 		List<ConfigurationBuilder> appConfigs = new ArrayList<ConfigurationBuilder>();
 		Mongo m = null;
 		try {
-			m = MongoDBHandler.getNewMongoConnection();
+			m = new Mongo("localhost", 27017 );
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			
 			/** Get the applications access tokens and keys information **/
@@ -60,7 +59,7 @@ public class TwitterApplicationManager {
 		List<ConfigurationBuilder> appConfigs = new ArrayList<ConfigurationBuilder>();
 		Mongo m = null;
 		try {
-			m = MongoDBHandler.getNewMongoConnection();
+			m = new Mongo("localhost", 27017 );
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			DBCollection appsColl = twitterDb.getCollection("applications");
 			

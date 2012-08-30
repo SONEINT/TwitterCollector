@@ -12,8 +12,6 @@ import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
-import edu.isi.db.MongoDBHandler;
-
 public class UserTimeLineFetcherCaller {
 	
 	public static String ACCESS_TOKEN = "750028153-PWyGgHuXrqvKl7eOc0UkKd6aeYDvKMmgqm6g2J2s";
@@ -38,7 +36,7 @@ public class UserTimeLineFetcherCaller {
 		
 		Mongo m;
 		try {
-			m = MongoDBHandler.getNewMongoConnection();
+			m = new Mongo("localhost", 27017 );
 			m.setWriteConcern(WriteConcern.SAFE);
 			DB db = m.getDB("twitter");
 //			DBCollection coll = db.getCollection("tweets");
