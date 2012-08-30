@@ -80,7 +80,8 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 	}
 	
 	public static void main(String[] args) {
-		UsersFriendsAndFollowersManager mgr = new UsersFriendsAndFollowersManager(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserNetworkGraphFetcher));
+		TwitterApplicationManager amgr = new TwitterApplicationManager();
+		UsersFriendsAndFollowersManager mgr = new UsersFriendsAndFollowersManager(amgr.getOneConfigurationBuilderByTag(ApplicationTag.UserNetworkGraphFetcher));
 		mgr.run();
 	}
 }

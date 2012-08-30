@@ -23,7 +23,7 @@ public class TwitterApplicationManager {
 		Streaming, UserTimelineFetcher, UserProfileLookup, UserNetworkGraphFetcher
 	}
 	
-	public static List<ConfigurationBuilder> getAllApplicationConfigurations() {
+	public List<ConfigurationBuilder> getAllApplicationConfigurations() {
 		List<ConfigurationBuilder> appConfigs = new ArrayList<ConfigurationBuilder>();
 		Mongo m = null;
 		try {
@@ -52,11 +52,11 @@ public class TwitterApplicationManager {
 		return appConfigs;
 	}
 	
-	public static ConfigurationBuilder getOneConfigurationBuilderByTag(ApplicationTag tag) {
+	public ConfigurationBuilder getOneConfigurationBuilderByTag(ApplicationTag tag) {
 		return getAllConfigurationBuildersByTag(tag).get(0);
 	}
 	
-	public static List<ConfigurationBuilder> getAllConfigurationBuildersByTag(ApplicationTag tag) {
+	public List<ConfigurationBuilder> getAllConfigurationBuildersByTag(ApplicationTag tag) {
 		List<ConfigurationBuilder> appConfigs = new ArrayList<ConfigurationBuilder>();
 		Mongo m = null;
 		try {

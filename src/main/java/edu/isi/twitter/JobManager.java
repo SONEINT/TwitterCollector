@@ -32,37 +32,38 @@ public class JobManager {
 	}
 	
 	public static void main(String[] args) {
-		runTwitterStreamListenerThread();
-		runUserProfileFillerThread();
+		TwitterApplicationManager mgr = new TwitterApplicationManager();
+		runTwitterStreamListenerThread(mgr);
+		runUserProfileFillerThread(mgr);
 //		runUserNetworkFetcherThread();
-		runTwitterTimeLineFetcher();
+		runTwitterTimeLineFetcher(mgr);
 	}
 	
-	private static void runTwitterStreamListenerThread() {
+	private static void runTwitterStreamListenerThread(TwitterApplicationManager mgr) {
 		logger.info("Starting Twitter stream listener thread");
-		Thread t = new Thread(new TwitterUsersStreamDumper(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.Streaming)));
+		Thread t = new Thread(new TwitterUsersStreamDumper(mgr.getOneConfigurationBuilderByTag(ApplicationTag.Streaming)));
 		t.start();
 	}
 
-	private static void runUserProfileFillerThread() {
+	private static void runUserProfileFillerThread(TwitterApplicationManager mgr) {
 		logger.info("Starting User profile lokup thread");
-		Thread t = new Thread(new UserProfileFiller(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup)));
+		Thread t = new Thread(new UserProfileFiller(mgr.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup)));
 		t.start();
 	}
 	
-	private static void runUserNetworkFetcherThread() {
+	private static void runUserNetworkFetcherThread(TwitterApplicationManager mgr) {
 		logger.info("Starting user network fetcher thread");
-		Thread t = new Thread(new UsersFriendsAndFollowersManager(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserNetworkGraphFetcher)));
+		Thread t = new Thread(new UsersFriendsAndFollowersManager(mgr.getOneConfigurationBuilderByTag(ApplicationTag.UserNetworkGraphFetcher)));
 		t.start();
 	}
 
-	private static void runTwitterTimeLineFetcher() {
+	private static void runTwitterTimeLineFetcher(TwitterApplicationManager mgr) {
 		logger.info("Starting user's timeline fetcher thread");
 		List<Thread> allThreads = new ArrayList<Thread>();
 		try {
 			Mongo m = MongoDBHandler.getNewMongoConnection();
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
-			List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserTimelineFetcher);
+			List<ConfigurationBuilder> allConfigs = mgr.getAllConfigurationBuildersByTag(ApplicationTag.UserTimelineFetcher);
 			
 			/** Calculating the number and range of users to be handled by each application thread **/
 			DBCollection userColl = twitterDb.getCollection(TwitterCollections.users.name());
@@ -97,7 +98,7 @@ public class JobManager {
 			}
 			logger.info("All timeline fetcher threads finished! Looping again ...");
 			// Run the method again when all the threads have finished
-			runTwitterTimeLineFetcher();
+			runTwitterTimeLineFetcher(mgr);
 			
 		} catch (UnknownHostException e) {
 			logger.error("Error occured with Mongo host!", e);
