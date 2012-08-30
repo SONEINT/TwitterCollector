@@ -1,5 +1,7 @@
 package edu.isi.twitter.rest;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -26,18 +28,30 @@ public class UserTimelineFetcher {
 	private Twitter authenticatedTwitter;
 	
 	private static Logger logger = LoggerFactory.getLogger(UserTimelineFetcher.class);
+	private static int TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS = 14;
+	private int numberOfTweetsInLast2Weeks = 0;
 	
 	public UserTimelineFetcher(long uid, Twitter authenticatedTwitter) {
 		this.uid = uid;
 		this.authenticatedTwitter = authenticatedTwitter;
 	}
 	
+	public int getNumberOfTweetsInLast2Weeks() {
+		return numberOfTweetsInLast2Weeks;
+	}
+
 	public boolean fetchAndStoreInDB(DBCollection mdbCollection, DBCollection userColl, DBCollection usersFromTweetMentionsColl, boolean retryAfterRateLimitExceeded) {
 		
 		Paging paging = new Paging(1, PAGING_SIZE);
 		try {
 			ResponseList<Status> statuses = authenticatedTwitter.getUserTimeline(uid, paging);
 			logger.debug("Initial size of user's timeline history:" + statuses.size());
+
+			// 2 week's before time
+			Calendar date = Calendar.getInstance();
+			date.add(Calendar.HOUR, -(24* TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS));
+			Date twoWeeksAgo = date.getTime();
+			
 			doloop:
 			do {
 				/** Sleeping the thread for some time to avoid generating too many requests very fast. Should not be greater than 3600/350 ~= 10sec **/
@@ -66,6 +80,11 @@ public class UserTimelineFetcher {
 								break doloop;
 							}
 						}
+						
+						// Increase the numberOfTweetsInLast2Weeks counter if the tweet was created in last 2 weeks
+						Date createdAt = status.getCreatedAt();
+						if(createdAt.after(twoWeeksAgo))
+							numberOfTweetsInLast2Weeks++;
 					}
 					else
 						logger.error("Null db object for uid: " + uid);
@@ -78,23 +97,23 @@ public class UserTimelineFetcher {
 			} while ((statuses = authenticatedTwitter.getUserTimeline(uid, paging)).size() != 0);
 			
 			return true;
-		} catch (TwitterException e1) {
-			if(e1.isErrorMessageAvailable())
-				logger.error("Error message from API: " + e1.getErrorMessage());
-			/** If we exceed the rate limitation **/
-			if(e1.exceededRateLimitation()) {
-				try {
-					logger.error("Rate limit exceeded Going to sleep for " + e1.getRetryAfter());
-					// Sleep
-					Thread.sleep(TimeUnit.SECONDS.toMillis(e1.getRetryAfter()));
-					// Try again after waking up
-					fetchAndStoreInDB(mdbCollection, userColl, usersFromTweetMentionsColl, true);
-				} catch (InterruptedException e) {
-					logger.error("InterruptedException", e);
+		} catch (TwitterException e) {
+			// Taking care of the rate limiting
+			if (e.exceededRateLimitation() || e.getRateLimitStatus().getRemainingHits() == 0) {
+				if (e.getRateLimitStatus().getSecondsUntilReset() != 0) {
+					try {
+						logger.error("Reached rate limit!", e);
+						logger.info("Making timeline fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
+						Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset()));
+						logger.info("Waking up the timeline fetcher thread!");
+						// Try again after waking up
+						fetchAndStoreInDB(mdbCollection, userColl, usersFromTweetMentionsColl, true);
+					} catch (InterruptedException e1) {
+						logger.error("InterruptedException", e1);
+					}
 				}
-			} else {
-				logger.error("Twitter exception!" , e1);
-			}
+			} else
+				logger.error("Problem occured with user: " + uid, e);
 		} catch (InterruptedException e1) {
 			logger.error("Something bad happened to the thread. This should be rare!", e1);
 		};
@@ -105,16 +124,17 @@ public class UserTimelineFetcher {
 		for (UserMentionEntity userMention : mentionEntities) {
 			try {
 				long uid = userMention.getId();
-				// Add the user if he does not exists
-				if(userColl.find(new BasicDBObject("uid", uid)).count() == 0 && usersFromTweetMentionsColl.find(new BasicDBObject("uid", uid)).count() == 0) {
-					logger.debug("Adding user from tweet mentions: " + userMention.getScreenName());
-					BasicDBObject userObj = new BasicDBObject();
-					userObj.put("uid", new Long(uid).doubleValue());
-					userObj.put("name", userMention.getScreenName());
-					userObj.put("addedFromTweetMentions", true);
-					userObj.put("incomplete", 1);
-					usersFromTweetMentionsColl.save(userObj);
-				}
+				logger.debug("Adding user from tweet mentions: " + userMention.getScreenName());
+				BasicDBObject userObj = new BasicDBObject();
+				userObj.put("uid", new Long(uid).doubleValue());
+				userObj.put("name", userMention.getScreenName());
+				userObj.put("addedFromTweetMentions", true);
+				userObj.put("incomplete", 1);
+				usersFromTweetMentionsColl.save(userObj);
+			} catch (MongoException e) {
+				if (e.getCode() == 11000)
+					logger.error("Tweet mention user already exists: " + userMention.getName() + ". Error: " + e.getMessage());
+				continue;
 			} catch (Exception e) {
 				logger.error("Error occured while adding tweet mention user: " + userMention.getName(), e);
 				continue;

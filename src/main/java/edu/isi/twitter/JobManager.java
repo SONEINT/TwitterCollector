@@ -34,7 +34,7 @@ public class JobManager {
 	public static void main(String[] args) {
 		runTwitterStreamListenerThread();
 		runUserProfileFillerThread();
-		runUserNetworkFetcherThread();
+//		runUserNetworkFetcherThread();
 		runTwitterTimeLineFetcher();
 	}
 	

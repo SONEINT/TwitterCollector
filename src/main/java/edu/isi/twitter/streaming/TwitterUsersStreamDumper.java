@@ -33,8 +33,6 @@ public class TwitterUsersStreamDumper implements Runnable {
 			TwitterStreamListener listener = new TwitterStreamListener();
 			twitterStream.addListener(listener);
 			twitterStream.filter(fltrQry);
-		    
-			
 		} catch (MongoException e) {
 			logger.error("Mongo Exception!", e);
 		} catch (UnknownHostException e) {

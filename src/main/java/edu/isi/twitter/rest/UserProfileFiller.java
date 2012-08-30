@@ -74,21 +74,27 @@ public class UserProfileFiller implements Runnable {
 								
 							}
 //							logger.info("Sleeping");
-							Thread.sleep(TimeUnit.SECONDS.toMillis(8L));
+							Thread.sleep(TimeUnit.SECONDS.toMillis(3L));
 //							System.out.println("Waking");
 							counter = 0;
 						}
 						userIds[counter++] = uid;
 					} catch (TwitterException e) {
-						if(e.exceededRateLimitation()) {
-							try {
-								Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRetryAfter()));
-								continue;
-							} catch (InterruptedException e1) {
-								logger.error("InterruptedException", e1);
+						// Taking care of the rate limiting
+						if (e.exceededRateLimitation() || e.getRateLimitStatus().getRemainingHits() == 0) {
+							if (e.getRateLimitStatus().getSecondsUntilReset() != 0) {
+								try {
+									logger.error("Reached rate limit!", e);
+									logger.info("Making user profile thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
+									Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset()));
+									logger.info("Waking up the user profile thread!");
+									continue;
+								} catch (InterruptedException e1) {
+									logger.error("InterruptedException", e1);
+								}
 							}
-						}
-						logger.error("Problem occured with user: " + user.get("name"), e);
+						} else
+							logger.error("Problem occured while getting user profiles.", e);
 						continue;
 					} catch (InterruptedException e) {
 						logger.error("InterruptedException", e);

@@ -64,17 +64,14 @@ public class TwitterMongoDBHandler {
 		for (UserMentionEntity userMention : mentionEntities) {
 			try {
 				long uid = userMention.getId();
-				// Add the user if he does not exists
-				if(userColl.find(new BasicDBObject("uid", uid)).count() == 0 && usersFromTweetMentionsColl.find(new BasicDBObject("uid", uid)).count() == 0) {
-					BasicDBObject userObj = new BasicDBObject();
-					userObj.put("uid", new Long(uid).doubleValue());
-					userObj.put("name", userMention.getScreenName());
-					userObj.put("addedFromTweetMentions", true);
-					userObj.put("incomplete", 1);
-					usersFromTweetMentionsColl.save(userObj);
-				}
+				BasicDBObject userObj = new BasicDBObject();
+				userObj.put("uid", new Long(uid).doubleValue());
+				userObj.put("name", userMention.getScreenName());
+				userObj.put("addedFromTweetMentions", true);
+				userObj.put("incomplete", 1);
+				usersFromTweetMentionsColl.save(userObj);
 			} catch (Exception e) {
-				logger.error("Error occured while adding tweet mention user: " + userMention.getName(), e);
+				logger.info("Error occured while adding tweet mention user: " + userMention.getName() + ". Error: " + e.getMessage());
 				continue;
 			}
 		}
