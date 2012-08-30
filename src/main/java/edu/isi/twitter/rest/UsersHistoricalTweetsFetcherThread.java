@@ -73,7 +73,7 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
             	}
             	
             	DBObject user = cursor.next();
-            	if (user.containsField("uid"))
+            	if (!user.containsField("uid"))
             		continue;
             	Double d = Double.parseDouble(user.get("uid").toString());
             	long uid = d.longValue();
