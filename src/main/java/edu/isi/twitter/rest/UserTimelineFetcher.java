@@ -133,7 +133,7 @@ public class UserTimelineFetcher {
 				usersFromTweetMentionsColl.save(userObj);
 			} catch (MongoException e) {
 				if (e.getCode() == 11000)
-					logger.error("Tweet mention user already exists: " + userMention.getName() + ". Error: " + e.getMessage());
+					logger.debug("Tweet mention user already exists: " + userMention.getName() + ". Error: " + e.getMessage());
 				continue;
 			} catch (Exception e) {
 				logger.error("Error occured while adding tweet mention user: " + userMention.getName(), e);

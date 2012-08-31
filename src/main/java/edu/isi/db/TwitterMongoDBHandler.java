@@ -72,7 +72,7 @@ public class TwitterMongoDBHandler {
 				userObj.put("incomplete", 1);
 				usersFromTweetMentionsColl.save(userObj);
 			} catch (Exception e) {
-				logger.info("Error occured while adding tweet mention user: " + userMention.getName() + ". Error: " + e.getMessage());
+				logger.debug("Error occured while adding tweet mention user: " + userMention.getName() + ". Error: " + e.getMessage());
 				continue;
 			}
 		}

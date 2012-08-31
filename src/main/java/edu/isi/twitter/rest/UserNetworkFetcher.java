@@ -121,6 +121,8 @@ public class UserNetworkFetcher {
 				}
 			} else
 				logger.error("Problem occured while fetching network information.", e);
+		} catch (Exception e) {
+			logger.error("Error occured while getting user network", e);
 		}
 	}
 	
@@ -209,6 +211,8 @@ public class UserNetworkFetcher {
 				}
 			} else
 				logger.error("Problem occured while fetching network information.", e);
+		}  catch (Exception e) {
+			logger.error("Error occured while getting user network", e);
 		}
 	}
 }
