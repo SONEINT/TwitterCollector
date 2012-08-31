@@ -10,6 +10,7 @@ import twitter4j.Twitter;
 import twitter4j.TwitterFactory;
 import twitter4j.conf.ConfigurationBuilder;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -43,8 +44,10 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 			DBCollection usersGraphActionListColl = twitterDb.getCollection(TwitterCollections.usersGraphActionList.name());
 			Twitter authenticatedTwitter = new TwitterFactory(cb.build()).getInstance();
 			
+			DBObject query = new BasicDBObject("onceDone", new BasicDBObject("$exists", false));
+			
 			while (true) {
-				DBCursor cursor = usersGraphListColl.find();
+				DBCursor cursor = usersGraphListColl.find(query);
 				while (cursor.hasNext()) {
 					DBObject user = cursor.next();
 					if(!user.containsField("uid")) {
