@@ -100,7 +100,7 @@ public class UserNetworkFetcher {
 			}
 		} catch (TwitterException e) {
 			// Taking care of the rate limiting
-			if (e.exceededRateLimitation() || e.getRateLimitStatus().getRemainingHits() == 0) {
+			if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
 				logger.error("Reached rate limit!");
 				try {
 					if (e.getRateLimitStatus().getSecondsUntilReset() != 0) {

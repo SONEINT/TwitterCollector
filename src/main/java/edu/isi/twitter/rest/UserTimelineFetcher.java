@@ -99,7 +99,7 @@ public class UserTimelineFetcher {
 			return true;
 		} catch (TwitterException e) {
 			// Taking care of the rate limiting
-			if (e.exceededRateLimitation() || e.getRateLimitStatus().getRemainingHits() == 0) {
+			if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
 				if (e.getRateLimitStatus().getSecondsUntilReset() != 0) {
 					try {
 						logger.error("Reached rate limit!", e);
