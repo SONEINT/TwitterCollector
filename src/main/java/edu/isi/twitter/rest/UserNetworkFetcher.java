@@ -14,7 +14,6 @@ import twitter4j.TwitterException;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
 public class UserNetworkFetcher {
@@ -52,20 +51,20 @@ public class UserNetworkFetcher {
 			} while ((cursor = ids.getNextCursor()) != 0);
 			
 			/** Get all the existing friends of the user from the Database and Update the last_seen flag for the common friends **/
-			DBCursor friendCursor = usersGraphColl.find(new BasicDBObject("uid", uid).append("link_type", "friend"));
-			boolean friendDBListEmpty = friendCursor.count() == 0 ? true : false;
+//			DBCursor friendCursor = usersGraphColl.find(new BasicDBObject("uid", uid).append("link_type", "friend"));
+//			boolean friendDBListEmpty = friendCursor.count() == 0 ? true : false;
 			List<Long> friendDBList = new ArrayList<Long>();
-			while (friendCursor.hasNext()) {
-				DBObject dbFriend = friendCursor.next();
-				long link_user_id = Long.parseLong(dbFriend.get("link_user_id").toString());
-				friendDBList.add(new Long(link_user_id));
-				
-				// Update the last seen if the user link already exists
-				if (friendsTwitterList.contains(new Long(link_user_id))) {
-					dbFriend.put("last_seen",now.toDate());
-					usersGraphColl.save(dbFriend);
-				}
-			}
+//			while (friendCursor.hasNext()) {
+//				DBObject dbFriend = friendCursor.next();
+//				long link_user_id = Long.parseLong(dbFriend.get("link_user_id").toString());
+//				friendDBList.add(new Long(link_user_id));
+//				
+//				// Update the last seen if the user link already exists
+//				if (friendsTwitterList.contains(new Long(link_user_id))) {
+//					dbFriend.put("last_seen",now.toDate());
+//					usersGraphColl.save(dbFriend);
+//				}
+//			}
 			
 			/** Add the new friends in the usersGraph and usersGraphActionList **/
 			List<Long> friendTwitterListCopy = new ArrayList<Long>(friendsTwitterList);
@@ -77,10 +76,10 @@ public class UserNetworkFetcher {
 				
 				/** Add to the usersGraphActionList **/
 				DBObject action = new BasicDBObject("uid", uid).append("link_user_id", link_id).append("link_type", "friend").append("date", now.toDate());
-				if(friendDBListEmpty)
+//				if(friendDBListEmpty)
 					action.put("action", UserAction.init.name());
-				else
-					action.put("action", UserAction.add.name());
+//				else
+//					action.put("action", UserAction.add.name());
 				usersGraphActionListColl.save(action);
 			}
 			
@@ -142,20 +141,20 @@ public class UserNetworkFetcher {
 			} while ((cursor = ids.getNextCursor()) != 0);
 			
 			/** Get all the existing followers of the user from the Database and Update the last_seen flag for the common followers **/
-			DBCursor followerCursor = usersGraphColl.find(new BasicDBObject("uid", uid).append("link_type", "follower"));
-			boolean followerDBListEmpty = followerCursor.count() == 0 ? true : false;
+//			DBCursor followerCursor = usersGraphColl.find(new BasicDBObject("uid", uid).append("link_type", "follower"));
+//			boolean followerDBListEmpty = followerCursor.count() == 0 ? true : false;
 			List<Long> followerDBList = new ArrayList<Long>();
-			while (followerCursor.hasNext()) {
-				DBObject dbFollower = followerCursor.next();
-				long link_user_id = Long.parseLong(dbFollower.get("link_user_id").toString());
-				followerDBList.add(new Long(link_user_id));
-				
-				// Update the last seen if the user link already exists
-				if (followerTwitterList.contains(new Long(link_user_id))) {
-					dbFollower.put("last_seen",now.toDate());
-					usersGraphColl.save(dbFollower);
-				}
-			}
+//			while (followerCursor.hasNext()) {
+//				DBObject dbFollower = followerCursor.next();
+//				long link_user_id = Long.parseLong(dbFollower.get("link_user_id").toString());
+//				followerDBList.add(new Long(link_user_id));
+//				
+//				// Update the last seen if the user link already exists
+//				if (followerTwitterList.contains(new Long(link_user_id))) {
+//					dbFollower.put("last_seen",now.toDate());
+//					usersGraphColl.save(dbFollower);
+//				}
+//			}
 			
 			/** Add the new followers in the usersGraph and usersGraphActionList **/
 			List<Long> followerTwitterListCopy = new ArrayList<Long>(followerTwitterList);
@@ -167,10 +166,10 @@ public class UserNetworkFetcher {
 				
 				/** Add to the usersGraphActionList **/
 				DBObject action = new BasicDBObject("uid", uid).append("link_user_id", link_id).append("link_type", "follower").append("date", now.toDate());
-				if(followerDBListEmpty)
+//				if(followerDBListEmpty)
 					action.put("action", UserAction.init.name());
-				else
-					action.put("action", UserAction.add.name());
+//				else
+//					action.put("action", UserAction.add.name());
 				usersGraphActionListColl.save(action);
 			}
 			
