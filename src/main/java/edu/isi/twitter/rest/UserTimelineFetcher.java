@@ -100,17 +100,27 @@ public class UserTimelineFetcher {
 		} catch (TwitterException e) {
 			// Taking care of the rate limiting
 			if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
-				if (e.getRateLimitStatus().getSecondsUntilReset() != 0) {
+				if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
 					try {
 						logger.error("Reached rate limit!", e);
 						logger.info("Making timeline fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
-						Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset()));
+						Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60));
 						logger.info("Waking up the timeline fetcher thread!");
 						// Try again after waking up
 						fetchAndStoreInDB(mdbCollection, userColl, usersFromTweetMentionsColl, true);
 					} catch (InterruptedException e1) {
 						logger.error("InterruptedException", e1);
 					}
+				} else {
+					logger.info("Making timeline fetcher thread sleep for 60 minutes");
+					try {
+						Thread.sleep(TimeUnit.MINUTES.toMillis(60));
+					} catch (InterruptedException e1) {
+						e1.printStackTrace();
+					}
+					logger.info("Waking up the network fetcher thread!");
+					// Try again
+					fetchAndStoreInDB(mdbCollection, userColl, usersFromTweetMentionsColl, true);
 				}
 			} else
 				logger.error("Problem occured with user: " + uid, e);

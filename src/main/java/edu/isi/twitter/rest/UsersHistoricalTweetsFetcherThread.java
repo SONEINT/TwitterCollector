@@ -112,6 +112,9 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
             		} catch (MongoException me) {
             			logger.error("Error saving user's last updated time stamp.", me);
             		}
+            	} else {
+            		user.put("problemOccured", true);
+            		userColl.save(user);
             	}
             }
         } finally {

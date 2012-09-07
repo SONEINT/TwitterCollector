@@ -30,21 +30,50 @@ public class UserNetworkFetcher {
 	}
 
 	public boolean fetchAndStoreInDB(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
-		addFriends(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
-		addFollowers(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
-		return true;
+		boolean frSuccess = addFriends(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
+		boolean flwrSuccess = addFollowers(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
+		return (frSuccess && flwrSuccess);
 	}
 
-	private void addFriends(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
+	private boolean addFriends(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
 		try {
 			DateTime now = new DateTime();
 			
 			/** Getting all the friends of the user from Twitter **/
 			long cursor = -1;
-			IDs ids;
+			IDs ids = null;
 			List<Long> friendsTwitterList = new ArrayList<Long>();
 			do {
-				ids = authenticatedTwitter.getFriendsIDs(uid, cursor);
+				try {
+					ids = authenticatedTwitter.getFriendsIDs(uid, cursor);
+				} catch (TwitterException e) {
+					// Taking care of the rate limiting
+					if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
+						logger.error("Reached rate limit!");
+						try {
+							if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
+								logger.info("Making network fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
+								Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60));
+								logger.info("Waking up the network fetcher thread!");
+								// Try again
+								ids = authenticatedTwitter.getFriendsIDs(uid, cursor);
+							} else {
+								logger.info("Making network fetcher thread sleep for 60 minutes");
+								Thread.sleep(TimeUnit.MINUTES.toMillis(60));
+								logger.info("Waking up the network fetcher thread!");
+								// Try again
+								ids = authenticatedTwitter.getFriendsIDs(uid, cursor);
+							}
+						} catch (InterruptedException e1) {
+							logger.error("InterruptedException", e1);
+						}
+					} else
+						logger.error("Problem occured while fetching network information.", e);
+				}
+				if (ids == null) {
+					logger.error("Null ids found for the user: " + uid);
+					break;
+				}
 				for (long id : ids.getIDs()) {
 					friendsTwitterList.add(new Long(id));
 				}
@@ -97,44 +126,56 @@ public class UserNetworkFetcher {
 					usersGraphActionListColl.save(query);
 				}
 			}
+			return true;
 		} catch (TwitterException e) {
-			// Taking care of the rate limiting
-			if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
-				logger.error("Reached rate limit!");
-				try {
-					if (e.getRateLimitStatus().getSecondsUntilReset() != 0) {
-						logger.info("Making network fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
-						Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset()));
-						logger.info("Waking up the network fetcher thread!");
-						// Try again
-						addFollowers(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
-					} else {
-						logger.info("Making network fetcher thread sleep for 30 minutes");
-						Thread.sleep(TimeUnit.MINUTES.toMillis(30));
-						logger.info("Waking up the network fetcher thread!");
-						// Try again
-						addFriends(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
-					}
-				} catch (InterruptedException e1) {
-					logger.error("InterruptedException", e1);
-				}
-			} else
-				logger.error("Problem occured while fetching network information.", e);
+			logger.error("Critical Twitter exception!", e);
+			return false;
 		} catch (Exception e) {
 			logger.error("Error occured while getting user network", e);
+			return false;
 		}
 	}
 	
-	private void addFollowers(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
+	private boolean addFollowers(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
 		try {
 			DateTime now = new DateTime();
 			
 			/** Getting all the followers of the user from Twitter **/
 			long cursor = -1;
-			IDs ids;
+			IDs ids = null;
 			List<Long> followerTwitterList = new ArrayList<Long>();
 			do {
-				ids = authenticatedTwitter.getFollowersIDs(uid, cursor);
+				try {
+					ids = authenticatedTwitter.getFollowersIDs(uid, cursor);
+				} catch (TwitterException e) {
+					// Taking care of the rate limiting
+					if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
+						logger.error("Reached rate limit!");
+						try {
+							if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
+								logger.info("Making network fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
+								Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60));
+								logger.info("Waking up the network fetcher thread!");
+								// Try again
+								ids = authenticatedTwitter.getFollowersIDs(uid, cursor);
+							} else {
+								logger.info("Making network fetcher thread sleep for 60 minutes");
+								Thread.sleep(TimeUnit.MINUTES.toMillis(60));
+								logger.info("Waking up the network fetcher thread!");
+								// Try again
+								ids = authenticatedTwitter.getFollowersIDs(uid, cursor);
+							}
+						} catch (InterruptedException e1) {
+							logger.error("InterruptedException", e1);
+						}
+					} else
+						logger.error("Problem occured while fetching network information.", e);
+				}
+				if (ids == null) {
+					logger.error("Null ids found for the user: " + uid);
+					break;
+				}
+					
 				for (long id : ids.getIDs()) {
 					followerTwitterList.add(new Long(id));
 				}
@@ -187,31 +228,13 @@ public class UserNetworkFetcher {
 					usersGraphActionListColl.save(query);
 				}
 			}
+			return true;
 		} catch (TwitterException e) {
-			// Taking care of the rate limiting
-			if (e.exceededRateLimitation() || e.getRateLimitStatus().getRemainingHits() == 0) {
-				logger.error("Reached rate limit!");
-				try {
-					if (e.getRateLimitStatus().getSecondsUntilReset() != 0) {
-						logger.info("Making network fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
-						Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset()));
-						logger.info("Waking up the network fetcher thread!");
-						// Try again
-						addFollowers(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
-					} else {
-						logger.info("Making network fetcher thread sleep for 30 minutes");
-						Thread.sleep(TimeUnit.MINUTES.toMillis(30));
-						logger.info("Waking up the network fetcher thread!");
-						// Try again
-						addFollowers(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
-					}
-				} catch (InterruptedException e1) {
-					logger.error("InterruptedException", e1);
-				}
-			} else
-				logger.error("Problem occured while fetching network information.", e);
-		}  catch (Exception e) {
+			logger.error("Critical Twitter exception!", e);
+			return false;
+		} catch (Exception e) {
 			logger.error("Error occured while getting user network", e);
+			return false;
 		}
 	}
 }

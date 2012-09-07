@@ -17,6 +17,7 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
+import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
@@ -37,6 +38,7 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 	public void run() {
 		try {
 			Mongo m = MongoDBHandler.getNewMongoConnection();
+			m.setWriteConcern(WriteConcern.SAFE);
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			DBCollection usersGraphListColl = twitterDb.getCollection(TwitterCollections.usersgraphlist.name());
 //			DBCollection usersGraphListColl = twitterDb.getCollection("usersGraphListTest");
@@ -61,6 +63,9 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 					boolean success = f.fetchAndStoreInDB(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
 					if (success) {
 						user.put("onceDone", true);
+						usersGraphListColl.save(user);
+					} else {
+						user.put("problemOccured", true);
 						usersGraphListColl.save(user);
 					}
 				}
