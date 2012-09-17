@@ -27,7 +27,7 @@ import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
 
 public class UsersFriendsAndFollowersManager implements Runnable {
 
-	ConfigurationBuilder cb;
+	private ConfigurationBuilder cb;
 	
 	private Logger logger = LoggerFactory.getLogger(UsersFriendsAndFollowersManager.class);
 	
@@ -60,14 +60,14 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 	            	long uid = d.longValue();
 	            	logger.info("Getting network for the user: " + uid);
 					UserNetworkFetcher f = new UserNetworkFetcher(uid);
-					boolean success = f.fetchAndStoreInDB(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
-					if (success) {
-						user.put("onceDone", true);
-						usersGraphListColl.save(user);
-					} else {
-						user.put("problemOccured", true);
-						usersGraphListColl.save(user);
-					}
+//					boolean success = f.fetchAndStoreInDB(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
+//					if (success) {
+//						user.put("onceDone", true);
+//						usersGraphListColl.save(user);
+//					} else {
+//						user.put("problemOccured", true);
+//						usersGraphListColl.save(user);
+//					}
 				}
 				
 				// Making the thread sleep for some time before trying again

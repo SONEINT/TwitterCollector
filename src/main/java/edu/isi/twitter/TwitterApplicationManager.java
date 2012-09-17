@@ -85,7 +85,8 @@ public class TwitterApplicationManager {
 	    	.setOAuthConsumerSecret(appObj.get(TwitterAccountKeys.consumer_key_secret.name()).toString())
 	    	.setOAuthAccessToken(appObj.get(TwitterAccountKeys.access_token.name()).toString())
 	    	.setOAuthAccessTokenSecret(appObj.get(TwitterAccountKeys.access_token_secret.name()).toString())
-	    	.setJSONStoreEnabled(true);
+	    	.setJSONStoreEnabled(true)
+	    	.setIncludeRTsEnabled(true);
 		return cb;
 	}
 }

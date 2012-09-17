@@ -14,6 +14,7 @@ import twitter4j.TwitterException;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
 public class UserNetworkFetcher {
@@ -29,13 +30,13 @@ public class UserNetworkFetcher {
 		this.uid = uid;
 	}
 
-	public boolean fetchAndStoreInDB(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
-		boolean frSuccess = addFriends(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
-		boolean flwrSuccess = addFollowers(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
+	public boolean fetchAndStoreInDB(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter, DBCollection currentThreadsColl, DBObject threadObj) {
+		boolean frSuccess = addFriends(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, threadObj);
+		boolean flwrSuccess = addFollowers(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, threadObj);
 		return (frSuccess && flwrSuccess);
 	}
 
-	private boolean addFriends(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
+	private boolean addFriends(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter, DBCollection currentThreadsColl, DBObject threadObj) {
 		try {
 			DateTime now = new DateTime();
 			
@@ -53,13 +54,25 @@ public class UserNetworkFetcher {
 						try {
 							if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
 								logger.info("Making network fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
+								
+								threadObj.put("status", "sleeping");
+								currentThreadsColl.save(threadObj);
 								Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60));
+								threadObj.put("status", "notSleeping");
+								currentThreadsColl.save(threadObj);
+								
 								logger.info("Waking up the network fetcher thread!");
 								// Try again
 								ids = authenticatedTwitter.getFriendsIDs(uid, cursor);
 							} else {
 								logger.info("Making network fetcher thread sleep for 60 minutes");
+								
+								threadObj.put("status", "sleeping");
+								currentThreadsColl.save(threadObj);
 								Thread.sleep(TimeUnit.MINUTES.toMillis(60));
+								threadObj.put("status", "notSleeping");
+								currentThreadsColl.save(threadObj);
+								
 								logger.info("Waking up the network fetcher thread!");
 								// Try again
 								ids = authenticatedTwitter.getFriendsIDs(uid, cursor);
@@ -80,20 +93,20 @@ public class UserNetworkFetcher {
 			} while ((cursor = ids.getNextCursor()) != 0);
 			
 			/** Get all the existing friends of the user from the Database and Update the last_seen flag for the common friends **/
-//			DBCursor friendCursor = usersGraphColl.find(new BasicDBObject("uid", uid).append("link_type", "friend"));
-//			boolean friendDBListEmpty = friendCursor.count() == 0 ? true : false;
+			DBCursor friendCursor = usersGraphColl.find(new BasicDBObject("uid", uid).append("link_type", "friend"));
+			boolean friendDBListEmpty = friendCursor.count() == 0 ? true : false;
 			List<Long> friendDBList = new ArrayList<Long>();
-//			while (friendCursor.hasNext()) {
-//				DBObject dbFriend = friendCursor.next();
-//				long link_user_id = Long.parseLong(dbFriend.get("link_user_id").toString());
-//				friendDBList.add(new Long(link_user_id));
-//				
-//				// Update the last seen if the user link already exists
-//				if (friendsTwitterList.contains(new Long(link_user_id))) {
-//					dbFriend.put("last_seen",now.toDate());
-//					usersGraphColl.save(dbFriend);
-//				}
-//			}
+			while (friendCursor.hasNext()) {
+				DBObject dbFriend = friendCursor.next();
+				long link_user_id = Long.parseLong(dbFriend.get("link_user_id").toString());
+				friendDBList.add(new Long(link_user_id));
+				
+				// Update the last seen if the user link already exists
+				if (friendsTwitterList.contains(new Long(link_user_id))) {
+					dbFriend.put("last_seen",now.toDate());
+					usersGraphColl.save(dbFriend);
+				}
+			}
 			
 			/** Add the new friends in the usersGraph and usersGraphActionList **/
 			List<Long> friendTwitterListCopy = new ArrayList<Long>(friendsTwitterList);
@@ -105,10 +118,10 @@ public class UserNetworkFetcher {
 				
 				/** Add to the usersGraphActionList **/
 				DBObject action = new BasicDBObject("uid", uid).append("link_user_id", link_id).append("link_type", "friend").append("date", now.toDate());
-//				if(friendDBListEmpty)
+				if(friendDBListEmpty)
 					action.put("action", UserAction.init.name());
-//				else
-//					action.put("action", UserAction.add.name());
+				else
+					action.put("action", UserAction.add.name());
 				usersGraphActionListColl.save(action);
 			}
 			
@@ -136,7 +149,7 @@ public class UserNetworkFetcher {
 		}
 	}
 	
-	private boolean addFollowers(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter) {
+	private boolean addFollowers(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter, DBCollection currentThreadsColl, DBObject threadObj) {
 		try {
 			DateTime now = new DateTime();
 			
@@ -154,13 +167,25 @@ public class UserNetworkFetcher {
 						try {
 							if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
 								logger.info("Making network fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
+								
+								threadObj.put("status", "sleeping");
+								currentThreadsColl.save(threadObj);
 								Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60));
+								threadObj.put("status", "notSleeping");
+								currentThreadsColl.save(threadObj);
+								
 								logger.info("Waking up the network fetcher thread!");
 								// Try again
 								ids = authenticatedTwitter.getFollowersIDs(uid, cursor);
 							} else {
 								logger.info("Making network fetcher thread sleep for 60 minutes");
+								
+								threadObj.put("status", "sleeping");
+								currentThreadsColl.save(threadObj);
 								Thread.sleep(TimeUnit.MINUTES.toMillis(60));
+								threadObj.put("status", "notSleeping");
+								currentThreadsColl.save(threadObj);
+								
 								logger.info("Waking up the network fetcher thread!");
 								// Try again
 								ids = authenticatedTwitter.getFollowersIDs(uid, cursor);
@@ -182,20 +207,20 @@ public class UserNetworkFetcher {
 			} while ((cursor = ids.getNextCursor()) != 0);
 			
 			/** Get all the existing followers of the user from the Database and Update the last_seen flag for the common followers **/
-//			DBCursor followerCursor = usersGraphColl.find(new BasicDBObject("uid", uid).append("link_type", "follower"));
-//			boolean followerDBListEmpty = followerCursor.count() == 0 ? true : false;
+			DBCursor followerCursor = usersGraphColl.find(new BasicDBObject("uid", uid).append("link_type", "follower"));
+			boolean followerDBListEmpty = followerCursor.count() == 0 ? true : false;
 			List<Long> followerDBList = new ArrayList<Long>();
-//			while (followerCursor.hasNext()) {
-//				DBObject dbFollower = followerCursor.next();
-//				long link_user_id = Long.parseLong(dbFollower.get("link_user_id").toString());
-//				followerDBList.add(new Long(link_user_id));
-//				
-//				// Update the last seen if the user link already exists
-//				if (followerTwitterList.contains(new Long(link_user_id))) {
-//					dbFollower.put("last_seen",now.toDate());
-//					usersGraphColl.save(dbFollower);
-//				}
-//			}
+			while (followerCursor.hasNext()) {
+				DBObject dbFollower = followerCursor.next();
+				long link_user_id = Long.parseLong(dbFollower.get("link_user_id").toString());
+				followerDBList.add(new Long(link_user_id));
+				
+				// Update the last seen if the user link already exists
+				if (followerTwitterList.contains(new Long(link_user_id))) {
+					dbFollower.put("last_seen",now.toDate());
+					usersGraphColl.save(dbFollower);
+				}
+			}
 			
 			/** Add the new followers in the usersGraph and usersGraphActionList **/
 			List<Long> followerTwitterListCopy = new ArrayList<Long>(followerTwitterList);
@@ -207,10 +232,10 @@ public class UserNetworkFetcher {
 				
 				/** Add to the usersGraphActionList **/
 				DBObject action = new BasicDBObject("uid", uid).append("link_user_id", link_id).append("link_type", "follower").append("date", now.toDate());
-//				if(followerDBListEmpty)
+				if(followerDBListEmpty)
 					action.put("action", UserAction.init.name());
-//				else
-//					action.put("action", UserAction.add.name());
+				else
+					action.put("action", UserAction.add.name());
 				usersGraphActionListColl.save(action);
 			}
 			

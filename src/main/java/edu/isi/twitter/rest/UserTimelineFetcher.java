@@ -40,7 +40,9 @@ public class UserTimelineFetcher {
 		return numberOfTweetsInLast2Weeks;
 	}
 
-	public boolean fetchAndStoreInDB(DBCollection mdbCollection, DBCollection userColl, DBCollection usersFromTweetMentionsColl, boolean retryAfterRateLimitExceeded) {
+	public boolean fetchAndStoreInDB(DBCollection tweetsCollection, DBCollection userColl
+			, DBCollection usersFromTweetMentionsColl, DBCollection currentThreadsColl
+			, DBObject threadObj, boolean retryAfterRateLimitExceeded) {
 		
 		Paging paging = new Paging(1, PAGING_SIZE);
 		try {
@@ -67,7 +69,7 @@ public class UserTimelineFetcher {
 					if(dbObject != null) {
 						try {
 							dbObject.put("tweetCreatedAt", status.getCreatedAt());
-							mdbCollection.insert(dbObject);
+							tweetsCollection.insert(dbObject);
 							UserMentionEntity[] mentionEntities = status.getUserMentionEntities();
 
 							if(mentionEntities != null)
@@ -95,32 +97,41 @@ public class UserTimelineFetcher {
 					}
 				}
 			} while ((statuses = authenticatedTwitter.getUserTimeline(uid, paging)).size() != 0);
-			
 			return true;
 		} catch (TwitterException e) {
 			// Taking care of the rate limiting
 			if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
 				if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
 					try {
-						logger.error("Reached rate limit!", e);
-						logger.info("Making timeline fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
+						logger.info("Reached rate limit! Making timeline fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
+						
+						threadObj.put("status", "sleeping");
+						currentThreadsColl.save(threadObj);
 						Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60));
+						threadObj.put("status", "notSleeping");
+						currentThreadsColl.save(threadObj);
+
 						logger.info("Waking up the timeline fetcher thread!");
 						// Try again after waking up
-						fetchAndStoreInDB(mdbCollection, userColl, usersFromTweetMentionsColl, true);
+						fetchAndStoreInDB(tweetsCollection, userColl, usersFromTweetMentionsColl, currentThreadsColl, threadObj, true);
 					} catch (InterruptedException e1) {
 						logger.error("InterruptedException", e1);
 					}
 				} else {
 					logger.info("Making timeline fetcher thread sleep for 60 minutes");
 					try {
+						threadObj.put("status", "sleeping");
+						currentThreadsColl.save(threadObj);
 						Thread.sleep(TimeUnit.MINUTES.toMillis(60));
+						threadObj.put("status", "notSleeping");
+						currentThreadsColl.save(threadObj);
+						
+						logger.info("Waking up the network fetcher thread!");
+						// Try again
+						fetchAndStoreInDB(tweetsCollection, userColl, usersFromTweetMentionsColl, currentThreadsColl, threadObj, true);
 					} catch (InterruptedException e1) {
 						e1.printStackTrace();
 					}
-					logger.info("Waking up the network fetcher thread!");
-					// Try again
-					fetchAndStoreInDB(mdbCollection, userColl, usersFromTweetMentionsColl, true);
 				}
 			} else
 				logger.error("Problem occured with user: " + uid, e);

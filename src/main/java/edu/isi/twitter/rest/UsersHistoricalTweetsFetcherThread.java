@@ -1,7 +1,6 @@
 package edu.isi.twitter.rest;
 
 import java.net.UnknownHostException;
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
@@ -90,32 +89,32 @@ public class UsersHistoricalTweetsFetcherThread implements Runnable {
             	
             	/** Fetch the user's timeline **/
             	UserTimelineFetcher f = new UserTimelineFetcher(uid, authenticatedTwitter);
-            	boolean success = f.fetchAndStoreInDB(tweetsColl, userColl, usersFromTweetMentionsColl, false);
-            	if (success) {
-            		try {
-            			user.put("lastUpdated", new Date());
-            			/** Calculate the time after which it should be updated again **/
-            			long nextUpdateAftervalue = getNextUpdateValueForTheUser(f.getNumberOfTweetsInLast2Weeks());
-            			user.put("nextUpdateAfter", nextUpdateAftervalue);
-            			
-//            			/** Save the id of the user's latest tweet **/
-//            			BasicDBObject queryForLastTweet = new BasicDBObject();
-//            			queryForLastTweet.put("user.id", uid);
-//            			DBCursor cur = tweetsColl.find(queryForLastTweet).sort(new BasicDBObject("tweetCreatedAt", -1)).limit(1);
-//            			if(cur.hasNext()) {
-//            				Object latestTweetMaxId = cur.next().get("id");
-//            				if(latestTweetMaxId instanceof Long)
-//            					user.put("currentMaxId", latestTweetMaxId);
-//            			}
-            	        user.put("onceDone", true);
-                		userColl.save(user);
-            		} catch (MongoException me) {
-            			logger.error("Error saving user's last updated time stamp.", me);
-            		}
-            	} else {
-            		user.put("problemOccured", true);
-            		userColl.save(user);
-            	}
+//            	boolean success = f.fetchAndStoreInDB(tweetsColl, userColl, usersFromTweetMentionsColl, false);
+//            	if (success) {
+//            		try {
+//            			user.put("lastUpdated", new Date());
+//            			/** Calculate the time after which it should be updated again **/
+//            			long nextUpdateAftervalue = getNextUpdateValueForTheUser(f.getNumberOfTweetsInLast2Weeks());
+//            			user.put("nextUpdateAfter", nextUpdateAftervalue);
+//            			
+////            			/** Save the id of the user's latest tweet **/
+////            			BasicDBObject queryForLastTweet = new BasicDBObject();
+////            			queryForLastTweet.put("user.id", uid);
+////            			DBCursor cur = tweetsColl.find(queryForLastTweet).sort(new BasicDBObject("tweetCreatedAt", -1)).limit(1);
+////            			if(cur.hasNext()) {
+////            				Object latestTweetMaxId = cur.next().get("id");
+////            				if(latestTweetMaxId instanceof Long)
+////            					user.put("currentMaxId", latestTweetMaxId);
+////            			}
+//            	        user.put("onceDone", true);
+//                		userColl.save(user);
+//            		} catch (MongoException me) {
+//            			logger.error("Error saving user's last updated time stamp.", me);
+//            		}
+//            	} else {
+//            		user.put("problemOccured", true);
+//            		userColl.save(user);
+//            	}
             }
         } finally {
             cursor.close();

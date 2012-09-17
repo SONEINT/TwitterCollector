@@ -26,7 +26,7 @@ public class TwitterMongoDBHandler {
 	}
 	
 	public enum TwitterCollections {
-		users, tweets, usersFromTweetMentions, usersGraph, usersGraphActionList, usersgraphlist, tweetsFromStream
+		users, tweets, usersFromTweetMentions, usersGraph, usersGraphActionList, usersgraphlist, tweetsFromStream, currentThreads
 	}
 	
 	public static long[] getCurrentFollowUserIdList() throws UnknownHostException, MongoException {

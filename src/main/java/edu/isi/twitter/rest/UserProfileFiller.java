@@ -82,7 +82,7 @@ public class UserProfileFiller implements Runnable {
 					} catch (TwitterException e) {
 						// Taking care of the rate limiting
 						if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
-							if (e.getRateLimitStatus().getSecondsUntilReset() != 0) {
+							if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
 								try {
 									logger.error("Reached rate limit!", e);
 									logger.info("Making user profile thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
@@ -91,6 +91,15 @@ public class UserProfileFiller implements Runnable {
 									continue;
 								} catch (InterruptedException e1) {
 									logger.error("InterruptedException", e1);
+								}
+							} else {
+								logger.info("Making user profile thread sleep for 60 minutes");
+								try {
+									Thread.sleep(TimeUnit.MINUTES.toMillis(60));
+									logger.info("Waking up the user profile thread");
+									continue;
+								} catch (InterruptedException e1) {
+									e1.printStackTrace();
 								}
 							}
 						} else
