@@ -81,7 +81,7 @@ public class UserNetworkFetcher {
 							logger.error("InterruptedException", e1);
 						}
 					} else
-						logger.error("Problem occured while fetching network information.", e);
+						logger.error("Problem occured while fetching network information: " + e.getMessage());
 				}
 				if (ids == null) {
 					logger.error("Null ids found for the user: " + uid);
@@ -194,7 +194,7 @@ public class UserNetworkFetcher {
 							logger.error("InterruptedException", e1);
 						}
 					} else
-						logger.error("Problem occured while fetching network information.", e);
+						logger.error("Problem occured while fetching network information: " + e.getMessage());
 				}
 				if (ids == null) {
 					logger.error("Null ids found for the user: " + uid);

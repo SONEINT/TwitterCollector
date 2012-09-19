@@ -56,8 +56,8 @@ public class UserTimelineFetcher {
 			
 			doloop:
 			do {
-				/** Sleeping the thread for some time to avoid generating too many requests very fast. Should not be greater than 3600/350 ~= 10sec **/
-				Thread.sleep(TimeUnit.SECONDS.toMillis(2 + (int)Math.random() * ((5-2)+1)));
+//				/** Sleeping the thread for some time to avoid generating too many requests very fast. Should not be greater than 3600/350 ~= 10sec **/
+//				Thread.sleep(TimeUnit.SECONDS.toMillis(2 + (int)Math.random() * ((5-2)+1)));
 				
 				long lastLongId = 0L; 
 				for (int i=0; i<statuses.size(); i++) {
@@ -75,7 +75,7 @@ public class UserTimelineFetcher {
 							if(mentionEntities != null)
 								addToUsersCollection(mentionEntities, userColl, usersFromTweetMentionsColl);
 						} catch (MongoException e) {
-							logger.error("Mongo Exception", e);
+							logger.error("Mongo Exception: " + e.getMessage());
 							/** Break out of the outer loop as this tweet and all tweets older than this already exists.
 							 * We keep looping though in case this is a case where we had to restart because of the rate limit exceeding exception. **/
 							if(e.getCode() == 11000 && !retryAfterRateLimitExceeded) {
@@ -134,10 +134,8 @@ public class UserTimelineFetcher {
 					}
 				}
 			} else
-				logger.error("Problem occured with user: " + uid, e);
-		} catch (InterruptedException e1) {
-			logger.error("Something bad happened to the thread. This should be rare!", e1);
-		};
+				logger.error("Problem occured with user: " + uid + ". Error message: " + e.getMessage());
+		}
 		return true;
 	}
 

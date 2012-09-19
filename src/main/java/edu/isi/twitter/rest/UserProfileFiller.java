@@ -103,7 +103,7 @@ public class UserProfileFiller implements Runnable {
 								}
 							}
 						} else
-							logger.error("Problem occured while getting user profiles.", e);
+							logger.error("Problem occured while getting user profiles: " + e.getMessage());
 						continue;
 					} catch (InterruptedException e) {
 						logger.error("InterruptedException", e);

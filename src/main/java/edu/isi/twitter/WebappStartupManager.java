@@ -28,13 +28,13 @@ import edu.isi.twitter.rest.UserProfileFiller;
 import edu.isi.twitter.rest.UserTweetsFetcherThread;
 import edu.isi.twitter.streaming.TwitterUsersStreamDumper;
 
-public class StartupManager implements ServletContextListener {
+public class WebappStartupManager implements ServletContextListener {
 
-	private Logger logger = LoggerFactory.getLogger(StartupManager.class);
+	private Logger logger = LoggerFactory.getLogger(WebappStartupManager.class);
 	
 	@Override
 	public void contextInitialized(ServletContextEvent arg0) {
-		StartupManager mgr = new StartupManager();
+		WebappStartupManager mgr = new WebappStartupManager();
 		mgr.clearOldThreadsFromTable();
 		mgr.runTwitterStreamListenerThread();
 		mgr.runUserProfileFillerThread();
@@ -43,7 +43,7 @@ public class StartupManager implements ServletContextListener {
 	}
 
 	public static void main(String[] args) {
-		StartupManager mgr = new StartupManager();
+		WebappStartupManager mgr = new WebappStartupManager();
 		mgr.clearOldThreadsFromTable();
 		mgr.runTwitterStreamListenerThread();
 		mgr.runUserProfileFillerThread();

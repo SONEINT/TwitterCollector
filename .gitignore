@@ -2,3 +2,4 @@
 log/web-karma.log
 target/
 .settings
+log/
