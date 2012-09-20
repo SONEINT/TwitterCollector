@@ -26,7 +26,7 @@ import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
 import edu.isi.twitter.rest.UserNetworkFetcherThread;
 import edu.isi.twitter.rest.UserProfileFiller;
 import edu.isi.twitter.rest.UserTweetsFetcherThread;
-import edu.isi.twitter.streaming.TwitterUsersStreamDumper;
+import edu.isi.twitter.streaming.TwitterStreamManager;
 
 public class WebappStartupManager implements ServletContextListener {
 
@@ -52,9 +52,9 @@ public class WebappStartupManager implements ServletContextListener {
 	}
 	
 	private void runTwitterStreamListenerThread() {
-		logger.info("Starting Twitter stream listener thread...");
-		Thread t = new Thread(new TwitterUsersStreamDumper(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.Streaming)));
-		t.start();
+		logger.info("Starting Twitter stream listener threads...");
+		TwitterStreamManager strMgr = new TwitterStreamManager();
+		strMgr.deployAllThreads();
 	}
 	
 	private void runUserProfileFillerThread() {

@@ -75,12 +75,16 @@ public class UserTimelineFetcher {
 							if(mentionEntities != null)
 								addToUsersCollection(mentionEntities, userColl, usersFromTweetMentionsColl);
 						} catch (MongoException e) {
-							logger.error("Mongo Exception: " + e.getMessage());
 							/** Break out of the outer loop as this tweet and all tweets older than this already exists.
 							 * We keep looping though in case this is a case where we had to restart because of the rate limit exceeding exception. **/
 							if(e.getCode() == 11000 && !retryAfterRateLimitExceeded) {
 								break doloop;
 							}
+							
+							if(e.getCode() == 11000)	// Duplicate tweet being inserted
+								continue;
+							else
+								logger.error("Mongo Exception: " + e.getMessage());
 						}
 						
 						// Increase the numberOfTweetsInLast2Weeks counter if the tweet was created in last 2 weeks

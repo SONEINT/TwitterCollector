@@ -16,11 +16,15 @@ import com.mongodb.MongoException;
 
 import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
-import edu.isi.twitter.JobManager.TwitterAccountKeys;
+import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 
 public class TwitterApplicationManager {
 	public enum ApplicationTag {
 		Streaming, UserTimelineFetcher, UserProfileLookup, UserNetworkGraphFetcher
+	}
+	
+	public enum TwitterAccountKeys {
+		user_id, access_token, access_token_secret, consumer_key, consumer_key_secret
 	}
 	
 	public static List<ConfigurationBuilder> getAllApplicationConfigurations() {
@@ -31,7 +35,7 @@ public class TwitterApplicationManager {
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			
 			/** Get the applications access tokens and keys information **/
-			DBCollection appsColl = twitterDb.getCollection("applications");
+			DBCollection appsColl = twitterDb.getCollection(TwitterCollections.applications.name());
 			long numberOfApps = appsColl.count();
 			DBCursor appsCursor = appsColl.find();
 			

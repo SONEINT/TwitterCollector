@@ -62,7 +62,7 @@ public class TwitterStreamListener implements StatusListener {
     }
 
     public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
-        logger.info("Got a status deletion notice id:" + statusDeletionNotice.getStatusId());
+        logger.debug("Got a status deletion notice id:" + statusDeletionNotice.getStatusId());
     }
 
     public void onTrackLimitationNotice(int numberOfLimitedStatuses) {

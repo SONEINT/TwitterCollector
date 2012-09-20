@@ -26,7 +26,7 @@ public class TwitterMongoDBHandler {
 	}
 	
 	public enum TwitterCollections {
-		users, tweets, usersFromTweetMentions, usersGraph, usersGraphActionList, usersgraphlist, tweetsFromStream, currentThreads
+		users, tweets, usersFromTweetMentions, usersGraph, usersGraphActionList, usersgraphlist, tweetsFromStream, currentThreads, applications
 	}
 	
 	public static long[] getCurrentFollowUserIdList() throws UnknownHostException, MongoException {
@@ -47,7 +47,7 @@ public class TwitterMongoDBHandler {
             		userIds.add(Long.parseLong(obj.get("uid").toString()));
             	}
             }
-            logger.info("List of users to be followed by the stream: " + userIds + ". \nSize: " + userIds.size());
+            logger.debug("List of users to be followed by the stream: " + userIds + ". \nSize: " + userIds.size());
         } finally {
             cursor.close();
         }

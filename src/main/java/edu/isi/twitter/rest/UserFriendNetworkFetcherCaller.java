@@ -2,8 +2,6 @@ package edu.isi.twitter.rest;
 
 import java.net.UnknownHostException;
 
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
@@ -20,8 +18,8 @@ public class UserFriendNetworkFetcherCaller {
 		try {
 			m = MongoDBHandler.getNewMongoConnection();
 			m.setWriteConcern(WriteConcern.SAFE);
-			DB db = m.getDB("twitter");
-			DBCollection coll = db.getCollection("tweets");
+//			DB db = m.getDB("twitter");
+			// DBCollection coll = db.getCollection("tweets");
 			
 //			UserFriendNetworkFetcher f = new UserFriendNetworkFetcher("funnyhumour");
 //			f.fetchAndStoreInDB(coll);

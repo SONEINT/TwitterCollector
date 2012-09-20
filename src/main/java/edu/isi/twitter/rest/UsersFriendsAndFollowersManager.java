@@ -6,10 +6,6 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import twitter4j.Twitter;
-import twitter4j.TwitterFactory;
-import twitter4j.conf.ConfigurationBuilder;
-
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -22,18 +18,16 @@ import com.mongodb.WriteConcern;
 import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
-import edu.isi.twitter.TwitterApplicationManager;
-import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
 
 public class UsersFriendsAndFollowersManager implements Runnable {
 
-	private ConfigurationBuilder cb;
+	// private ConfigurationBuilder cb;
 	
 	private Logger logger = LoggerFactory.getLogger(UsersFriendsAndFollowersManager.class);
 	
-	public UsersFriendsAndFollowersManager(ConfigurationBuilder cb) {
-		this.cb = cb;
-	}
+//	public UsersFriendsAndFollowersManager(ConfigurationBuilder cb) {
+//		this.cb = cb;
+//	}
 	
 	public void run() {
 		try {
@@ -42,9 +36,9 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
 			DBCollection usersGraphListColl = twitterDb.getCollection(TwitterCollections.usersgraphlist.name());
 //			DBCollection usersGraphListColl = twitterDb.getCollection("usersGraphListTest");
-			DBCollection usersGraphColl = twitterDb.getCollection(TwitterCollections.usersGraph.name());
-			DBCollection usersGraphActionListColl = twitterDb.getCollection(TwitterCollections.usersGraphActionList.name());
-			Twitter authenticatedTwitter = new TwitterFactory(cb.build()).getInstance();
+//			DBCollection usersGraphColl = twitterDb.getCollection(TwitterCollections.usersGraph.name());
+//			DBCollection usersGraphActionListColl = twitterDb.getCollection(TwitterCollections.usersGraphActionList.name());
+//			Twitter authenticatedTwitter = new TwitterFactory(cb.build()).getInstance();
 			
 			DBObject query = new BasicDBObject("onceDone", new BasicDBObject("$exists", false));
 			
@@ -59,7 +53,7 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 					Double d = Double.parseDouble(user.get("uid").toString());
 	            	long uid = d.longValue();
 	            	logger.info("Getting network for the user: " + uid);
-					UserNetworkFetcher f = new UserNetworkFetcher(uid);
+//					UserNetworkFetcher f = new UserNetworkFetcher(uid);
 //					boolean success = f.fetchAndStoreInDB(usersGraphColl, usersGraphActionListColl, authenticatedTwitter);
 //					if (success) {
 //						user.put("onceDone", true);
@@ -88,7 +82,7 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 	}
 	
 	public static void main(String[] args) {
-		UsersFriendsAndFollowersManager mgr = new UsersFriendsAndFollowersManager(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserNetworkGraphFetcher));
-		mgr.run();
+//		UsersFriendsAndFollowersManager mgr = new UsersFriendsAndFollowersManager(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserNetworkGraphFetcher));
+//		mgr.run();
 	}
 }

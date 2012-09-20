@@ -102,8 +102,10 @@ public class UserProfileFiller implements Runnable {
 									e1.printStackTrace();
 								}
 							}
-						} else
-							logger.error("Problem occured while getting user profiles: " + e.getMessage());
+						} else {
+							logger.debug("Problem occured while getting user profiles: " + e.getMessage());
+						}
+							
 						continue;
 					} catch (InterruptedException e) {
 						logger.error("InterruptedException", e);
