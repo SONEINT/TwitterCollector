@@ -160,7 +160,7 @@ public class UserNetworkFetcherThread implements Runnable {
 	private Queue<Long> getNewList(DBCollection usersListColl, DBCollection currentThreadsColl) {
 		Queue<Long> ids = new LinkedList<Long>();
 		
-		DBCursor c = usersListColl.find(new BasicDBObject("iteration", new BasicDBObject("$lte", iteration)))
+		DBCursor c = usersListColl.find(new BasicDBObject("iteration", new BasicDBObject("$lte", iteration)).append("uid", new BasicDBObject("$exists", true)))
 						.sort(new BasicDBObject("iteration", 1))
 						.limit(USER_LIST_COUNT);
 		
