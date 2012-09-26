@@ -26,7 +26,32 @@ public class TwitterMongoDBHandler {
 	}
 	
 	public enum TwitterCollections {
-		users, tweets, usersFromTweetMentions, usersGraph, usersGraphActionList, usersgraphlist, tweetsFromStream, currentThreads, applications
+		users, tweets, usersFromTweetMentions, usersGraph, usersGraphActionList, usersgraphlist, tweetsFromStream
+		, currentThreads, applications, timezones, countryCodes
+	}
+	
+	public enum users_SCHEMA {
+		uid, name, follow, location, timezone, country, created, crreated_ts, lastupdate, lastupdate_ts, lastUpdated, nextUpdateAfter
+	}
+	
+	public enum usersGraph_SCHEMA {
+		uid, link_user_id, link_type, first_seen, last_seen
+	}
+	
+	public enum usersGraphActionList_SCHEMA {
+		uid, link_user_id, link_type, date, action
+	}
+	
+	public enum usersgraphlist_SCHEMA {
+		uid, iteration, onceDone, name
+	}
+	
+	public enum timezones_SCHEMA {
+		name
+	}
+	
+	public enum countryCodes_SCHEMA {
+		name, countryCode
 	}
 	
 	public static long[] getCurrentFollowUserIdList() throws UnknownHostException, MongoException {
