@@ -141,16 +141,24 @@ public class UserNetworkFetcher {
 			
 			/** Add "remove" action for any link of the user that is present in db list but not in the current Twitter link list **/
 			linkDBList.removeAll(linkTwitterList);
+			// Get the existing delete links that exist
+			List<Long> existingDeleteLinksList = new ArrayList<Long>();
+			DBObject deleteListingQuery = new BasicDBObject("uid", uid).append("action", UserAction.delete.name()).append("link_type", link_type.name());
+			DBCursor existingDeleteLinksC = usersGraphActionListColl.find(deleteListingQuery);
+			while (existingDeleteLinksC.hasNext()) {
+				DBObject dbLink = existingDeleteLinksC.next();
+				long link_user_id = Long.parseLong(dbLink.get("link_user_id").toString());
+				existingDeleteLinksList.add(new Long(link_user_id));
+			}
+				
 			for (Long removedLinkId : linkDBList) {
-				// Check if the delete link already exists
-				DBObject query = new BasicDBObject("uid", uid).append("link_user_id", removedLinkId).append("action", UserAction.delete.name()).append("link_type", link_type.name());
-				if(usersGraphActionListColl.find(query).size() != 0) {
+				if(existingDeleteLinksList.contains(removedLinkId)) {
 					continue;
 				}
 				else {
 					// Add the delete link in userGraphAction table
-					query.put("date", now.toDate());
-					usersGraphActionListColl.save(query);
+					DBObject action = new BasicDBObject("uid", uid).append("link_user_id", removedLinkId).append("action", UserAction.delete.name()).append("link_type", link_type.name()).append("date", now.toDate());
+					usersGraphActionListColl.save(action);
 				}
 			}
 			return true;
