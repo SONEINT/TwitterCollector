@@ -87,8 +87,8 @@ public class LuceneIndexCreatorFromCSV {
 	}
 	
 	public IndexWriterConfig getIndexWriterConfig() {
-		IndexWriterConfig config = new IndexWriterConfig(GazatteerLuceneIndex.APP_LUCENE_VERSION
-				, new StandardAnalyzer(GazatteerLuceneIndex.APP_LUCENE_VERSION));
+		IndexWriterConfig config = new IndexWriterConfig(GazetteerLuceneManager.APP_LUCENE_VERSION
+				, new StandardAnalyzer(GazetteerLuceneManager.APP_LUCENE_VERSION));
 		if (createNewIndex)
 			config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 		else

@@ -3,3 +3,5 @@ log/web-karma.log
 target/
 .settings
 log/
+results/
+lucene-index/
