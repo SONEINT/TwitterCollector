@@ -16,9 +16,16 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.MongoException;
+
+import edu.isi.db.TwitterMongoDBHandler.USER_SOURCE;
+import edu.isi.db.TwitterMongoDBHandler.usersWaitingList_SCHEMA;
 
 public class UserNetworkFetcher {
 	private long uid;
+	private int friendDepth;
+	private int followerDepth;
+	private int followerCount;
 
 	private Logger logger = LoggerFactory.getLogger(UserNetworkFetcher.class);
 	
@@ -30,17 +37,33 @@ public class UserNetworkFetcher {
 		friend, follower
 	}
 	
-	public UserNetworkFetcher(long uid) {
+	public UserNetworkFetcher(long uid, int friendDepth, int followerDepth) {
 		this.uid = uid;
+		this.friendDepth = friendDepth;
+		this.followerDepth = followerDepth;
+	}
+	
+	public int getFollowerCount() {
+		return followerCount;
 	}
 
-	public boolean fetchAndStoreInDB(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter, DBCollection currentThreadsColl, DBObject threadObj) {
-		boolean frSuccess = addLinks(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, threadObj, LINK_TYPE.friend);
-		boolean flwrSuccess = addLinks(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, threadObj, LINK_TYPE.follower);
+	public boolean fetchAndStoreInDB(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, 
+			Twitter authenticatedTwitter, DBCollection currentThreadsColl, DBObject threadObj, DBCollection usersWaitingListColl) {
+		boolean frSuccess = addLinks(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, 
+				threadObj, usersWaitingListColl, LINK_TYPE.friend);
+		boolean flwrSuccess = addLinks(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, 
+				threadObj, usersWaitingListColl, LINK_TYPE.follower);
 		return (frSuccess && flwrSuccess);
 	}
 
-	private boolean addLinks(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter, DBCollection currentThreadsColl, DBObject threadObj, LINK_TYPE link_type) {
+	private boolean addLinks(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter, DBCollection currentThreadsColl, DBObject threadObj, DBCollection usersWaitingListColl, LINK_TYPE link_type) {
+		// Create a flag that determines if the new users need to be added to the usersWaitingList collection
+		boolean addToUsersWaitingList = false;
+		if (link_type == LINK_TYPE.friend && friendDepth > 0)
+			addToUsersWaitingList = true;
+		else if (link_type == LINK_TYPE.follower && followerDepth > 0)
+			addToUsersWaitingList = true;
+		
 		try {
 			DateTime now = new DateTime();
 			
@@ -57,42 +80,34 @@ public class UserNetworkFetcher {
 				} catch (TwitterException e) {
 					// Taking care of the rate limiting
 					if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
-						logger.error("Reached rate limit!");
+						logger.info("Reached rate limit!");
+						long timeToSleep = TimeUnit.MINUTES.toMillis(60); // Default sleep length = 60 minutes
+						
+						if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
+							timeToSleep = TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60);
+						}
 						try {
-							if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
-								logger.info("Making network fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
-								
-								threadObj.put("status", "sleeping");
-								currentThreadsColl.save(threadObj);
-								Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60));
-								threadObj.put("status", "notSleeping");
-								currentThreadsColl.save(threadObj);
-								
-								logger.info("Waking up the network fetcher thread!");
-								// Try again
-								if (link_type == LINK_TYPE.follower)
-									ids = authenticatedTwitter.getFollowersIDs(uid, cursor);
-								else if (link_type == LINK_TYPE.friend)
-									ids = authenticatedTwitter.getFriendsIDs(uid, cursor);
-							} else {
-								logger.info("Making network fetcher thread sleep for 60 minutes");
-								
-								threadObj.put("status", "sleeping");
-								currentThreadsColl.save(threadObj);
-								Thread.sleep(TimeUnit.MINUTES.toMillis(60));
-								threadObj.put("status", "notSleeping");
-								currentThreadsColl.save(threadObj);
-								
-								logger.info("Waking up the network fetcher thread!");
-								// Try again
-								if (link_type == LINK_TYPE.follower)
-									ids = authenticatedTwitter.getFollowersIDs(uid, cursor);
-								else if (link_type == LINK_TYPE.friend)
-									ids = authenticatedTwitter.getFriendsIDs(uid, cursor);
-							}
+							logger.info("Making network fetcher thread sleep for " + TimeUnit.MILLISECONDS.toMinutes(timeToSleep) + " minutes.");
+							
+							threadObj.put("status", "sleeping");
+							currentThreadsColl.save(threadObj);
+							Thread.sleep(timeToSleep);
+							threadObj.put("status", "notSleeping");
+							currentThreadsColl.save(threadObj);
+							
+							logger.info("Waking up the network fetcher thread!");
+							// Try again
+							if (link_type == LINK_TYPE.follower)
+								ids = authenticatedTwitter.getFollowersIDs(uid, cursor);
+							else if (link_type == LINK_TYPE.friend)
+								ids = authenticatedTwitter.getFriendsIDs(uid, cursor);
 						} catch (InterruptedException e1) {
 							logger.error("InterruptedException", e1);
+						} catch (TwitterException e1) {
+							logger.error("Error getting network information after waking up the thread.", e1);
+							break;
 						}
+						
 					} else
 						logger.error("Problem occured while fetching network information: " + e.getMessage());
 				}
@@ -103,6 +118,10 @@ public class UserNetworkFetcher {
 					
 				for (long id : ids.getIDs()) {
 					linkTwitterList.add(new Long(id));
+					
+					// Increment the follower count
+					if (link_type == LINK_TYPE.follower)
+						followerCount++;
 				}
 			} while ((cursor = ids.getNextCursor()) != 0);
 			
@@ -137,6 +156,11 @@ public class UserNetworkFetcher {
 				else
 					action.put("action", UserAction.add.name());
 				usersGraphActionListColl.save(action);
+				
+				/** Add to the usersWaitingList if required **/
+				if (addToUsersWaitingList) {
+					addUserToUsersWaitingListCollection(link_id, usersWaitingListColl);
+				}
 			}
 			
 			/** Add "remove" action for any link of the user that is present in db list but not in the current Twitter link list **/
@@ -162,12 +186,28 @@ public class UserNetworkFetcher {
 				}
 			}
 			return true;
-		} catch (TwitterException e) {
-			logger.error("Critical Twitter exception!", e);
-			return false;
 		} catch (Exception e) {
 			logger.error("Error occured while getting user network", e);
 			return false;
 		}
+	}
+
+	private void addUserToUsersWaitingListCollection(Long uid, DBCollection usersWaitingListColl) {
+		DBObject usr = new BasicDBObject(usersWaitingList_SCHEMA.uid.name(), uid);
+		usr.put(usersWaitingList_SCHEMA.source.name(), USER_SOURCE.Graph.name());
+		usr.put(usersWaitingList_SCHEMA.friendDepth.name(), friendDepth-1);
+		usr.put(usersWaitingList_SCHEMA.followerDepth.name(), followerDepth-1);
+		usr.put(usersWaitingList_SCHEMA.followMentions.name(), false);
+		usr.put(usersWaitingList_SCHEMA.parsed.name(), false);
+		
+		try {
+			usersWaitingListColl.insert(usr);
+		} catch (MongoException e) {
+			if (e.getCode() == 11000) {
+				return;
+			} else
+				logger.error("Error adding user to users waiting list collection.", e);
+		}
+		
 	}
 }

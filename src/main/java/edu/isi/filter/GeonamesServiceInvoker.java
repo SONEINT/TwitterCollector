@@ -1,4 +1,4 @@
-package edu.isi.twitter;
+package edu.isi.filter;
 
 import java.util.Random;
 
@@ -66,7 +66,7 @@ public class GeonamesServiceInvoker {
 				
 				// If invalid lat/long kind of error
 				if (statusVal == 12 || statusVal == 14 || statusVal == 15) {
-					logger.error("Invalid data!");
+					logger.debug("Invalid data!");
 					return "";
 				} 
 				// If hourly limit reached

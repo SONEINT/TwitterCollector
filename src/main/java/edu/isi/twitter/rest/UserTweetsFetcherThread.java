@@ -12,6 +12,10 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import twitter4j.Twitter;
+import twitter4j.TwitterFactory;
+import twitter4j.conf.ConfigurationBuilder;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -22,28 +26,29 @@ import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
+import edu.isi.db.TwitterMongoDBHandler.THREAD_TYPE;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
-
-import twitter4j.Twitter;
-import twitter4j.TwitterFactory;
-import twitter4j.conf.ConfigurationBuilder;
+import edu.isi.db.TwitterMongoDBHandler.currentThreads_SCHEMA;
+import edu.isi.db.TwitterMongoDBHandler.users_SCHEMA;
+import edu.isi.twitter.AppConfig;
 
 public class UserTweetsFetcherThread implements Runnable {
 
-	private int iteration;
 	private ConfigurationBuilder cb;
 	private String threadName;
 	private Logger logger = LoggerFactory.getLogger(UserNetworkFetcherThread.class);
 	private static int USER_LIST_COUNT = 50;
+	private AppConfig appConfig;
 	
 	private static int MAX_DAYS_TO_WAIT_FOR_NEXT_QUERY = 14;
 	private static int TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS = 14;
+	private static long CURRENT_USER_TIME_DELTA = 8640000000l; // 100 days
 	
-	public UserTweetsFetcherThread(int iteration, ConfigurationBuilder cb, int index) {
-		this.iteration = iteration;
+	
+	public UserTweetsFetcherThread(ConfigurationBuilder cb, int index, AppConfig appConfig) {
 		this.cb = cb;
-		this.threadName = "TweetFetcher" + index;
+		this.threadName = THREAD_TYPE.TweetFetcher.name() + index;
+		this.appConfig = appConfig;
 	}
 	
 	public void run() {
@@ -65,15 +70,16 @@ public class UserTweetsFetcherThread implements Runnable {
 			return;
 		}
 		
-		DB twitterDb = m.getDB(TwitterApplication.twitter.name());
+		DB twitterDb = m.getDB(appConfig.getDBName());
 		DBCollection usersColl = twitterDb.getCollection(TwitterCollections.users.name());
 		DBCollection tweetsColl = twitterDb.getCollection(TwitterCollections.tweets.name());
-		DBCollection usersFromTweetMentionsColl = twitterDb.getCollection(TwitterCollections.usersFromTweetMentions.name());
+		DBCollection usersWaitingListColl = twitterDb.getCollection(TwitterCollections.usersWaitingList.name());
 		DBCollection currentThreadsColl = twitterDb.getCollection(TwitterCollections.currentThreads.name());
 		Twitter authenticatedTwitter = new TwitterFactory(cb.build()).getInstance();
 		
 		// Register the thread in the currentThreads table
-		DBObject threadObj = new BasicDBObject("type", "TweetFetcher").append("name", threadName);
+		DBObject threadObj = new BasicDBObject(currentThreads_SCHEMA.type.name(), THREAD_TYPE.TweetFetcher.name())
+			.append(currentThreads_SCHEMA.name.name(), threadName);
 		currentThreadsColl.save(threadObj);
 		
 		// Get a queue of uids and process each member
@@ -81,17 +87,11 @@ public class UserTweetsFetcherThread implements Runnable {
 		while (true) {
 			if(uids.size() == 0) {
 				uids = getNewList(usersColl, currentThreadsColl);
-				// Done with this iteration. Increment the iteration counter
 				if(uids.size() == 0) {
-					logger.info("Empty queue received. Incrementing the iteration number: " + (iteration+1));
-					iteration++;
-					uids = getNewList(usersColl, currentThreadsColl);
-					if (uids.size() == 0) {
-						logger.error("Something badly wrong! No uids retrieved for the iteration: " + iteration);
-						threadObj.put("status", "closed");
-						currentThreadsColl.save(threadObj);
-						break;
-					}
+					logger.info("Empty queue received.");
+					threadObj.put("status", "closed");
+					currentThreadsColl.save(threadObj);
+					break;
 				}
 			}
 			
@@ -99,7 +99,7 @@ public class UserTweetsFetcherThread implements Runnable {
 			
 			// Check if the user has been covered already by another thread and should be covered in the next iteration
 			DBObject usr = null;
-			DBCursor usrs = usersColl.find(new BasicDBObject("uid", uid));
+			DBCursor usrs = usersColl.find(new BasicDBObject(users_SCHEMA.uid.name(), uid));
 			if (usrs.count() == 0) {
 				logger.error("User not found with uid: " + uid + ". This should not happen as the queue was populated from this collection only.");
 				continue;
@@ -124,59 +124,56 @@ public class UserTweetsFetcherThread implements Runnable {
 					usersColl.remove(usrD);
 			}
 			if (usr == null) continue;
-			int itr = Integer.parseInt(usr.get("iteration").toString());
-			if (itr > iteration) {
-				logger.debug("User's itr greater than current iteration!");
-				continue;
-			}
-				
 			
-			// Check if it is being done by any other user currently
-			if (currentThreadsColl.find(new BasicDBObject("userId", uid)).count() != 0) {
-				logger.debug("User's currently in use by another thread!");
+			long nextUpdateAfterOldVal = Long.parseLong(usr.get(users_SCHEMA.nextUpdateTweetFetcherDate.name()).toString());
+			// Increase its nextUpdateTweetFetcherDate value to so that it is not picked up by any other thread at the same time
+			usr.put(users_SCHEMA.nextUpdateTweetFetcherDate.name(), nextUpdateAfterOldVal + CURRENT_USER_TIME_DELTA);
+			usersColl.save(usr);
+			
+			// Check if it is being done by any other thread currently
+			if (currentThreadsColl.find(new BasicDBObject(currentThreads_SCHEMA.userId.name(), uid)).count() != 0) {
+//				logger.debug("User's currently in use by another thread!");
 				continue;
 			}
-				
 			
 			// Store the user as current user in the currentThreads table for this thread
-			threadObj.put("userId", uid);
+			threadObj.put(currentThreads_SCHEMA.userId.name(), uid);
 			currentThreadsColl.save(threadObj);
 			
 			// Process
-			/** Check if the user's timeline needs to be updated **/
-        	boolean userUpdateRequired = isUserUpdateRequired(usr);
-        	if(!userUpdateRequired) {
-        		logger.info("No timeline update currently required for " + usr.get("name"));
-        		continue;
-        	}
+//			/** Check if the user's timeline needs to be updated **/
+//        	boolean userUpdateRequired = isUserUpdateRequired(usr);
+//        	if(!userUpdateRequired) {
+//        		logger.info("No timeline update currently required for " + usr.get("name"));
+//        		continue;
+//        	}
         		
         	
         	/** Fetch the user's timeline **/
         	logger.info("Fetching tweets for userid:" + uid);
-        	UserTimelineFetcher f = new UserTimelineFetcher(uid, authenticatedTwitter);
-        	boolean success = f.fetchAndStoreInDB(tweetsColl, usersColl, usersFromTweetMentionsColl, currentThreadsColl, threadObj, false);
+        	UserTimelineFetcher f = new UserTimelineFetcher(uid, authenticatedTwitter, appConfig.isFollowMentions());
+        	boolean success = f.fetchAndStoreInDB(tweetsColl, usersColl, usersWaitingListColl, currentThreadsColl, threadObj, false);
         	if (success) {
         		try {
-        			usr.put("lastUpdated", new Date());
-        			/** Calculate the time after which it should be updated again **/
-        			long nextUpdateAftervalue = getNextUpdateValueForTheUser(f.getNumberOfTweetsInLast2Weeks());
-        			usr.put("nextUpdateAfter", nextUpdateAftervalue);
-        	        usr.put("onceDone", true);
+        			usr.put(users_SCHEMA.lastUpdatedTweetFetcher.name(), new Date());
+        			/** Calculate the date (in milliseconds) at which it should be updated again **/
+        			long nextUpdateDuration = getNextUpdateValueForTheUser(f.getNumberOfTweetsInLast2Weeks());
+        			DateTime dateToBeUpdated = new DateTime(new DateTime().getMillis() + nextUpdateDuration);
+        			usr.put(users_SCHEMA.nextUpdateTweetFetcherDate.name(), dateToBeUpdated.getMillis());
+        			usr.put(users_SCHEMA.tweetsPerDay.name(), getUsersActivityRate(f.getNumberOfTweetsInLast2Weeks()));
+        			
+        	        usr.put("onceDone", true); // for debugging purposes
             		usersColl.save(usr);
         		} catch (MongoException me) {
         			logger.error("Error saving user's last updated time stamp.", me);
         		}
         	} else {
-        		usr.put("problemOccured", true);
+        		usr.put(users_SCHEMA.tweetFetcherProblem.name(), true);
         		usersColl.save(usr);
         	}
 			
-			// Mark it for the next iteration
-			usr.put("iteration", itr+1);
-			usersColl.save(usr);
-			
 			// Clear the current user from the currentThreads table
-			threadObj.put("userId", "");
+			threadObj.put(currentThreads_SCHEMA.userId.name(), "");
 			currentThreadsColl.save(threadObj);
 		}
 		m.close();
@@ -184,25 +181,25 @@ public class UserTweetsFetcherThread implements Runnable {
 	
 	private Queue<Long> getNewList(DBCollection usersListColl, DBCollection currentThreadsColl) {
 		Queue<Long> ids = new LinkedList<Long>();
-		
-		DBCursor c = usersListColl.find(new BasicDBObject("iteration", new BasicDBObject("$lte", iteration)))
-						.sort(new BasicDBObject("iteration", 1))
+
+		DBCursor c = usersListColl.find()
+						.sort(new BasicDBObject(users_SCHEMA.nextUpdateTweetFetcherDate.name(), 1))
 						.limit(USER_LIST_COUNT);
 		
 		while (c.hasNext()) {
 			DBObject user = c.next();
-        	if (!user.containsField("uid"))
+        	if (!user.containsField(users_SCHEMA.uid.name()))
         		continue;
-        	Double d = Double.parseDouble(user.get("uid").toString());
+        	Double d = Double.parseDouble(user.get(users_SCHEMA.uid.name()).toString());
         	long uid = d.longValue();
         	ids.add(uid);
 		}
 		// Remove the ids currently being covered by other threads
-		DBCursor cCurrThreads = currentThreadsColl.find(new BasicDBObject("type", "TweetFetcher"));
+		DBCursor cCurrThreads = currentThreadsColl.find(new BasicDBObject(currentThreads_SCHEMA.type.name(), THREAD_TYPE.TweetFetcher.name()));
 		while (cCurrThreads.hasNext()) {
 			DBObject thread = cCurrThreads.next();
 			try {
-				Double d = Double.parseDouble(thread.get("userId").toString());
+				Double d = Double.parseDouble(thread.get(currentThreads_SCHEMA.userId.name()).toString());
 	        	long uid = d.longValue();
 	        	ids.remove(new Long(uid));
 			} catch (Exception e) {
@@ -214,6 +211,7 @@ public class UserTweetsFetcherThread implements Runnable {
 		return ids;
 	}
 	
+	/*
 	private boolean isUserUpdateRequired(DBObject user) {
 		if(user.containsField("lastUpdated") && user.containsField("nextUpdateAfter")) {
     		DateTime d = new DateTime(user.get("lastUpdated"));
@@ -230,6 +228,7 @@ public class UserTweetsFetcherThread implements Runnable {
     	} else
     		return true;
 	}
+	*/
 
 	private long getNextUpdateValueForTheUser(int numberOfTweetsInLast2Weeks) {
 		// Calculate time required by the user to reach 200 tweets
@@ -242,5 +241,8 @@ public class UserTweetsFetcherThread implements Runnable {
 		else
 			return t;
 	}
-
+	
+	private float getUsersActivityRate (int numberOfTweetsInLast2weeks) {
+		return numberOfTweetsInLast2weeks/(float)TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS;
+	}
 }

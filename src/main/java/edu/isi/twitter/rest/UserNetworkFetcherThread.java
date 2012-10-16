@@ -23,21 +23,24 @@ import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
+import edu.isi.db.TwitterMongoDBHandler.THREAD_TYPE;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
+import edu.isi.db.TwitterMongoDBHandler.currentThreads_SCHEMA;
+import edu.isi.db.TwitterMongoDBHandler.users_SCHEMA;
+import edu.isi.twitter.AppConfig;
 
 public class UserNetworkFetcherThread implements Runnable {
 	
-	private int iteration;
 	private ConfigurationBuilder cb;
 	private String threadName;
 	private Logger logger = LoggerFactory.getLogger(UserNetworkFetcherThread.class);
 	private static int USER_LIST_COUNT = 50;
+	private AppConfig appConfig;
 	
-	public UserNetworkFetcherThread(int iteration, ConfigurationBuilder cb, int index) {
-		this.iteration = iteration;
+	public UserNetworkFetcherThread(ConfigurationBuilder cb, int index, AppConfig appConfig) {
 		this.cb = cb;
-		this.threadName = "NetworkFetcher" + index;
+		this.threadName = THREAD_TYPE.NetworkFetcher.name() + index;
+		this.appConfig = appConfig;
 	}
 	
 	public void run() {
@@ -58,33 +61,29 @@ public class UserNetworkFetcherThread implements Runnable {
 			logger.error("Error getting connection to MongoDB! Cannot proceed with this thread.");
 			return;
 		}
-		DB twitterDb = m.getDB(TwitterApplication.twitter.name());
-		DBCollection usersGraphListColl = twitterDb.getCollection(TwitterCollections.usersgraphlist.name());
-		DBCollection currentThreadsColl = twitterDb.getCollection(TwitterCollections.currentThreads.name());
-		DBCollection usersGraphColl = twitterDb.getCollection(TwitterCollections.usersGraph.name());
-		DBCollection usersGraphActionListColl = twitterDb.getCollection(TwitterCollections.usersGraphActionList.name());
-		Twitter authenticatedTwitter = new TwitterFactory(cb.build()).getInstance();
+		DB 			 twitterDb 					= m.getDB(appConfig.getDBName());
+		DBCollection usersColl 					= twitterDb.getCollection(TwitterCollections.users.name());
+		DBCollection currentThreadsColl 		= twitterDb.getCollection(TwitterCollections.currentThreads.name());
+		DBCollection usersGraphColl 			= twitterDb.getCollection(TwitterCollections.usersGraph.name());
+		DBCollection usersGraphActionListColl 	= twitterDb.getCollection(TwitterCollections.usersGraphActionList.name());
+		DBCollection usersWaitingListColl 		= twitterDb.getCollection(TwitterCollections.usersWaitingList.name());
+		Twitter 	 authenticatedTwitter		= new TwitterFactory(cb.build()).getInstance();
 		
 		// Register the thread in the currentThreads table
-		DBObject threadObj = new BasicDBObject("type", "NetworkFetcher").append("name", threadName);
+		DBObject threadObj = new BasicDBObject(currentThreads_SCHEMA.type.name(), THREAD_TYPE.NetworkFetcher.name())
+			.append(currentThreads_SCHEMA.name.name(), threadName);
 		currentThreadsColl.save(threadObj);
 		
 		// Get a queue of uids and process each member
-		Queue<Long> uids = getNewList(usersGraphListColl, currentThreadsColl);
+		Queue<Long> uids = getNewList(usersColl, currentThreadsColl);
 		while (true) {
 			if(uids.size() == 0) {
-				uids = getNewList(usersGraphListColl, currentThreadsColl);
-				// Done with this iteration. Increment the iteration counter
+				uids = getNewList(usersColl, currentThreadsColl);
 				if(uids.size() == 0) {
-					logger.info("Empty queue received. Incrementing the iteration number: " + (iteration+1));
-					iteration++;
-					uids = getNewList(usersGraphListColl, currentThreadsColl);
-					if (uids.size() == 0) {
-						logger.error("Something badly wrong! No uids retrieved for the iteration: " + iteration);
-						threadObj.put("status", "closed");
-						currentThreadsColl.save(threadObj);
-						break;
-					}
+					logger.error("Empty queue received!");
+					threadObj.put(currentThreads_SCHEMA.status.name(), "closed");
+					currentThreadsColl.save(threadObj);
+					break;
 				}
 			}
 			
@@ -92,7 +91,7 @@ public class UserNetworkFetcherThread implements Runnable {
 			
 			// Check if the user has been covered already by another thread and should be covered in the next iteration
 			DBObject usr = null;
-			DBCursor usrs = usersGraphListColl.find(new BasicDBObject("uid", uid));
+			DBCursor usrs = usersColl.find(new BasicDBObject(users_SCHEMA.uid.name(), uid));
 			if (usrs.count() == 0) {
 				logger.error("User not found with uid: " + uid + ". This should not happen as the queue was populated from this collection only.");
 				continue;
@@ -114,44 +113,45 @@ public class UserNetworkFetcherThread implements Runnable {
 				}
 				// Delete the duplicates
 				for (DBObject usrD : usrsToBeRemoved)
-					usersGraphListColl.remove(usrD);
+					usersColl.remove(usrD);
 			}
 				
 			if (usr == null) continue;
-			int itr = Integer.parseInt(usr.get("iteration").toString());
-			if (itr > iteration) {
-				logger.debug("User's itr greater than current iteration!" + uid);
-				continue;
-			}
-				
+			int itr = Integer.parseInt(usr.get(users_SCHEMA.graphIterationCounter.name()).toString());
+			// Mark it for the next iteration. Increment by more than 3 if it was 0. graphIterationCounter is initially:
+			// 0 is for the seed/main users
+			// 1 is for the mentioned users
+			// 2 is if the profile changed for a user
+			int nextItr = (itr == 0 || itr == 1 || itr == 2) ? itr + 3 : itr+1;
+			usr.put(users_SCHEMA.graphIterationCounter.name(), nextItr);
+			usersColl.save(usr);
 			
 			// Check if it is being done by any other user currently
-			if (currentThreadsColl.find(new BasicDBObject("userId", uid)).count() != 0) {
-				logger.debug("User's currently in use by another thread!" + uid);
+			if (currentThreadsColl.find(new BasicDBObject(currentThreads_SCHEMA.userId.name(), uid)).count() != 0) {
+				// logger.debug("User's currently in use by another thread!" + uid);
 				continue;
 			}
 				
-			
 			// Store the user as current user in the currentThreads table for this thread
-			threadObj.put("userId", uid);
+			threadObj.put(currentThreads_SCHEMA.userId.name(), uid);
 			currentThreadsColl.save(threadObj);
 			
 			// Process
 			logger.info("Getting network for the user: " + uid);
-			UserNetworkFetcher f = new UserNetworkFetcher(uid);
-			boolean success = f.fetchAndStoreInDB(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, threadObj);
+			UserNetworkFetcher f = new UserNetworkFetcher(uid, 
+					Integer.parseInt(usr.get(users_SCHEMA.friendDepth.name()).toString()), 
+					Integer.parseInt(usr.get(users_SCHEMA.followerDepth.name()).toString()));
+			boolean success = f.fetchAndStoreInDB(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, 
+					currentThreadsColl, threadObj, usersWaitingListColl);
 			if (success) {
-				usr.put("onceDone", true);
+				usr.put("onceDone", true); // for debugging purposes
+				usr.put(users_SCHEMA.followerCount.name(), f.getFollowerCount());
 			} else {
-				usr.put("problemOccured", true);
+				usr.put(users_SCHEMA.graphFetcherProblem.name(), true);
 			}
 			
-			// Mark it for the next iteration
-			usr.put("iteration", itr+1);
-			usersGraphListColl.save(usr);
-			
 			// Clear the current user from the currentThreads table
-			threadObj.put("userId", "");
+			threadObj.put(currentThreads_SCHEMA.userId.name(), "");
 			currentThreadsColl.save(threadObj);
 		}
 		m.close();
@@ -160,24 +160,24 @@ public class UserNetworkFetcherThread implements Runnable {
 	private Queue<Long> getNewList(DBCollection usersListColl, DBCollection currentThreadsColl) {
 		Queue<Long> ids = new LinkedList<Long>();
 		
-		DBCursor c = usersListColl.find(new BasicDBObject("iteration", new BasicDBObject("$lte", iteration)).append("uid", new BasicDBObject("$exists", true)))
-						.sort(new BasicDBObject("iteration", 1))
+		DBCursor c = usersListColl.find()
+						.sort(new BasicDBObject(users_SCHEMA.graphIterationCounter.name(), 1))
 						.limit(USER_LIST_COUNT);
 		
 		while (c.hasNext()) {
 			DBObject user = c.next();
-        	if (!user.containsField("uid"))
+        	if (!user.containsField(users_SCHEMA.uid.name()))
         		continue;
-        	Double d = Double.parseDouble(user.get("uid").toString());
+        	Double d = Double.parseDouble(user.get(users_SCHEMA.uid.name()).toString());
         	long uid = d.longValue();
         	ids.add(uid);
 		}
 		// Remove the ids currently being covered by other threads
-		DBCursor cCurrThreads = currentThreadsColl.find(new BasicDBObject("type", "NetworkFetcher"));
+		DBCursor cCurrThreads = currentThreadsColl.find(new BasicDBObject(currentThreads_SCHEMA.type.name(), THREAD_TYPE.NetworkFetcher.name()));
 		while (cCurrThreads.hasNext()) {
 			DBObject thread = cCurrThreads.next();
 			try {
-				Double d = Double.parseDouble(thread.get("userId").toString());
+				Double d = Double.parseDouble(thread.get(currentThreads_SCHEMA.userId.name()).toString());
 	        	long uid = d.longValue();
 	        	ids.remove(new Long(uid));
 			} catch (Exception e) {
@@ -187,5 +187,4 @@ public class UserNetworkFetcherThread implements Runnable {
 		}
 		return ids;
 	}
-
 }

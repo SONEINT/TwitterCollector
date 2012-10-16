@@ -15,16 +15,21 @@ import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 
 public class TwitterApplicationManager {
+	private static String dBName = "twitter"; // default value
+	
 	public enum ApplicationTag {
-		Streaming, UserTimelineFetcher, UserProfileLookup, UserNetworkGraphFetcher
+		Streaming, UserTimelineFetcher, UserProfileLookup, UserNetworkGraphFetcher, Search
 	}
 	
 	public enum TwitterAccountKeys {
 		user_id, access_token, access_token_secret, consumer_key, consumer_key_secret
+	}
+	
+	public static void setDBName(String name) {
+		dBName = name;
 	}
 	
 	public static List<ConfigurationBuilder> getAllApplicationConfigurations() {
@@ -32,7 +37,7 @@ public class TwitterApplicationManager {
 		Mongo m = null;
 		try {
 			m = MongoDBHandler.getNewMongoConnection();
-			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
+			DB twitterDb = m.getDB(dBName);
 			
 			/** Get the applications access tokens and keys information **/
 			DBCollection appsColl = twitterDb.getCollection(TwitterCollections.applications.name());
@@ -57,7 +62,11 @@ public class TwitterApplicationManager {
 	}
 	
 	public static ConfigurationBuilder getOneConfigurationBuilderByTag(ApplicationTag tag) {
-		return getAllConfigurationBuildersByTag(tag).get(0);
+		List<ConfigurationBuilder> configs = getAllConfigurationBuildersByTag(tag);
+		if (configs.isEmpty())
+			return null;
+		else
+			return configs.get(0);
 	}
 	
 	public static List<ConfigurationBuilder> getAllConfigurationBuildersByTag(ApplicationTag tag) {
@@ -65,7 +74,7 @@ public class TwitterApplicationManager {
 		Mongo m = null;
 		try {
 			m = MongoDBHandler.getNewMongoConnection();
-			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
+			DB twitterDb = m.getDB(dBName);
 			DBCollection appsColl = twitterDb.getCollection("applications");
 			
 			DBCursor appCursor = appsColl.find(new BasicDBObject("tag", tag.name()));

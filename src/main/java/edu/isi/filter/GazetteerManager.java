@@ -1,4 +1,4 @@
-package edu.isi.twitter;
+package edu.isi.filter;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,21 +29,28 @@ import org.slf4j.LoggerFactory;
 
 import au.com.bytecode.opencsv.CSVReader;
 
-public class GazetteerLuceneManager {
+public class GazetteerManager {
 
 	private Set<String> indexedFields = new HashSet<String>();
 	private IndexSearcher indexSearcher;
+	private String indexDirectoryName;
 	
 	// private static float LUCENE_THRESHOLD_SCORE = 1.5f; 
-	public static final String INDEX_DIRECTORY = "lucene-index";
+	public static final String INDEX_DIRECTORY_PREFIX = "lucene-index";
 	public static final Version APP_LUCENE_VERSION = Version.LUCENE_36;
 	
-	private static Logger logger = LoggerFactory.getLogger(GazetteerLuceneManager.class);
+	private static Logger logger = LoggerFactory.getLogger(GazetteerManager.class);
 	
-	public GazetteerLuceneManager() {
+	public GazetteerManager(String dBName) {
+		indexDirectoryName = INDEX_DIRECTORY_PREFIX + "_" + dBName;
 		try {
-			IndexReader indexReader = IndexReader.open(FSDirectory.open(new File(INDEX_DIRECTORY)));
-			indexSearcher = new IndexSearcher(indexReader);
+			if(!new File(indexDirectoryName).exists()) {
+				new File(indexDirectoryName).mkdir();
+			} else {
+				IndexReader indexReader = IndexReader.open(FSDirectory.open(new File(indexDirectoryName)));
+				indexSearcher = new IndexSearcher(indexReader);
+			}
+			logger.info("Lucene index location: " + new File(indexDirectoryName).getAbsolutePath());
 		} catch (IOException e) {
 			logger.error("Error occured while attempting to setup index reader.", e);
 		}
@@ -56,7 +63,7 @@ public class GazetteerLuceneManager {
 		
 		// Prepare the index writer of Lucene
 		IndexWriterConfig config = getIndexWriterConfig(createNewIndex);
-		IndexWriter indexWriter = new IndexWriter(FSDirectory.open(new File(INDEX_DIRECTORY)), config);
+		IndexWriter indexWriter = new IndexWriter(FSDirectory.open(new File(indexDirectoryName)), config);
 		
 		// Start reading the CSV file
 		CSVReader reader = new CSVReader(new InputStreamReader(new FileInputStream(csvFile), "UTF-8"));
@@ -112,7 +119,7 @@ public class GazetteerLuceneManager {
 	    logger.info("Done creating index.");
 	    
 	    // Setup the index reader
-	    IndexReader indexReader = IndexReader.open(FSDirectory.open(new File(INDEX_DIRECTORY)));
+	    IndexReader indexReader = IndexReader.open(FSDirectory.open(new File(indexDirectoryName)));
 		indexSearcher = new IndexSearcher(indexReader);
 		
 		indexedFields.addAll(headers);
@@ -120,7 +127,7 @@ public class GazetteerLuceneManager {
 	
 	public boolean isLocationMatchingToGazetteerFeature(String location, String timezone) throws ParseException, IOException {
 		for (String field : indexedFields) {
-			QueryParser parser = new QueryParser(GazetteerLuceneManager.APP_LUCENE_VERSION, field, new StandardAnalyzer(GazetteerLuceneManager.APP_LUCENE_VERSION));
+			QueryParser parser = new QueryParser(GazetteerManager.APP_LUCENE_VERSION, field, new StandardAnalyzer(GazetteerManager.APP_LUCENE_VERSION));
 			String locationNormalized = normalizeForQueryParser(location);
 			String timezoneNormalized = normalizeForQueryParser(timezone);
 			
@@ -177,6 +184,10 @@ public class GazetteerLuceneManager {
 		str = str.replaceAll("(?i)river", "");
 		str = str.replaceAll("(?i)sea", "");
 		str = str.replaceAll("(?i)bay", "");
+		str = str.replaceAll("(?i)far", "");
+		str = str.replaceAll("(?i)blue", "");
+		str = str.replaceAll("(?i)port", "");
+		str = str.replaceAll("(?i)galaxy", "");
 		str = str.replaceAll("AZ", "");
 		str = str.replaceAll("WA", "");
 		str = str.replaceAll("CA", "");
@@ -184,8 +195,8 @@ public class GazetteerLuceneManager {
 	}
 
 	private IndexWriterConfig getIndexWriterConfig(boolean createNewIndex) {
-		IndexWriterConfig config = new IndexWriterConfig(GazetteerLuceneManager.APP_LUCENE_VERSION
-				, new StandardAnalyzer(GazetteerLuceneManager.APP_LUCENE_VERSION));
+		IndexWriterConfig config = new IndexWriterConfig(GazetteerManager.APP_LUCENE_VERSION
+				, new StandardAnalyzer(GazetteerManager.APP_LUCENE_VERSION));
 		if (createNewIndex)
 			config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 		else

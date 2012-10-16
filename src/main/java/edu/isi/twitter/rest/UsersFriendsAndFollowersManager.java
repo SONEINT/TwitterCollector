@@ -16,7 +16,6 @@ import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 
 public class UsersFriendsAndFollowersManager implements Runnable {
@@ -33,8 +32,8 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 		try {
 			Mongo m = MongoDBHandler.getNewMongoConnection();
 			m.setWriteConcern(WriteConcern.SAFE);
-			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
-			DBCollection usersGraphListColl = twitterDb.getCollection(TwitterCollections.usersgraphlist.name());
+			DB twitterDb = m.getDB("twitter");
+			DBCollection usersColl = twitterDb.getCollection(TwitterCollections.users.name());
 //			DBCollection usersGraphListColl = twitterDb.getCollection("usersGraphListTest");
 //			DBCollection usersGraphColl = twitterDb.getCollection(TwitterCollections.usersGraph.name());
 //			DBCollection usersGraphActionListColl = twitterDb.getCollection(TwitterCollections.usersGraphActionList.name());
@@ -43,7 +42,7 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 			DBObject query = new BasicDBObject("onceDone", new BasicDBObject("$exists", false));
 			
 			while (true) {
-				DBCursor cursor = usersGraphListColl.find(query);
+				DBCursor cursor = usersColl.find(query);
 				while (cursor.hasNext()) {
 					DBObject user = cursor.next();
 					if(!user.containsField("uid")) {

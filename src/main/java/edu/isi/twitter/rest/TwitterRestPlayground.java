@@ -1,5 +1,7 @@
 package edu.isi.twitter.rest;
 
+import java.util.concurrent.TimeUnit;
+
 import twitter4j.Paging;
 import twitter4j.ResponseList;
 import twitter4j.Status;
@@ -16,6 +18,9 @@ public class TwitterRestPlayground {
 	
 	public static void main(String[] args) {
 
+		System.out.println(TimeUnit.DAYS.toMillis(100));
+		System.exit(0);
+		
 		ConfigurationBuilder cb = new ConfigurationBuilder()
 			.setDebugEnabled(true)
 			.setOAuthConsumerKey(CONSUMER_KEY)

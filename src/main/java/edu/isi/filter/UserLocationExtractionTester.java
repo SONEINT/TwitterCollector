@@ -1,4 +1,4 @@
-package edu.isi.twitter;
+package edu.isi.filter;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -18,7 +18,6 @@ import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.db.TwitterMongoDBHandler.users_SCHEMA;
 
 public class UserLocationExtractionTester {
@@ -27,7 +26,7 @@ public class UserLocationExtractionTester {
 	
 	public static void main(String[] args) {
 		// Create the gazeteer index
-		GazetteerLuceneManager gzMgr = new GazetteerLuceneManager();
+		GazetteerManager gzMgr = new GazetteerManager("twitter");
 		try {
 //			gzMgr.createIndexFromGazetteerCSV(new File("data/test.csv"), true);
 			gzMgr.createIndexFromGazetteerCSV(new File("data/middle-east-gazatteer-v2.csv"), true);
@@ -49,7 +48,7 @@ public class UserLocationExtractionTester {
 			logger.error("Error getting connection to MongoDB! Cannot proceed with this thread.");
 			return;
 		}
-		DB twitterDb = m.getDB(TwitterApplication.twitter.name());
+		DB twitterDb = m.getDB("twitter");
 //		DBCollection usersColl = twitterDb.getCollection(TwitterCollections.users.name());
 		DBCollection usersColl = twitterDb.getCollection("usersTest");
 		
@@ -59,7 +58,7 @@ public class UserLocationExtractionTester {
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter("output.txt"));
 			BufferedWriter out2 = new BufferedWriter(new FileWriter("MiddleEastUsersList.txt"));
-			DBCursor usersC = usersColl.find();
+			DBCursor usersC = usersColl.find().snapshot();
 			while (usersC.hasNext()) {
 				usersCounter++;
 				if (usersCounter%10000 == 0 )
@@ -92,8 +91,6 @@ public class UserLocationExtractionTester {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
-		
 	}
 
 }

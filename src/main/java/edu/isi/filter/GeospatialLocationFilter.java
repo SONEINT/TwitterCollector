@@ -1,5 +1,6 @@
-package edu.isi.twitter;
+package edu.isi.filter;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -14,22 +15,24 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 import edu.isi.db.TwitterMongoDBHandler.countryCodes_SCHEMA;
 import edu.isi.db.TwitterMongoDBHandler.timezones_SCHEMA;
+import edu.isi.db.TwitterMongoDBHandler.users_SCHEMA;
+import edu.isi.twitter.AppConfig.FILTER_TYPE;
 
-public class UserLocationIdentifier {
-	private String location;
-	private String timezone;
-	private GazetteerLuceneManager gzMgr;
+public class GeospatialLocationFilter implements Filter {
 	
-	private static Logger logger = LoggerFactory.getLogger(UserLocationIdentifier.class);
+	private GazetteerManager gzMgr;
+	private FILTER_TYPE filterType;
+	
+	private static Logger logger = LoggerFactory.getLogger(GeospatialLocationFilter.class);
 	private static List<String> middleEastTimezones = new ArrayList<String>();
 	private static List<String> middleEastCountryCodes = new ArrayList<String>();
 	
@@ -39,20 +42,25 @@ public class UserLocationIdentifier {
 	private static String re3=".*?";	// Non-greedy match on filler
 	private static String re4="([+-]?\\d*\\.\\d+)(?![-+0-9\\.])";	// Float 2
     private static Pattern latLongRegex = Pattern.compile(re1+re2+re3+re4,Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-    
-    static private int LatLngCounter = 0;
-	
-    
-	public UserLocationIdentifier(String location, String timezone, GazetteerLuceneManager gzMgr) {
-		this.location = location;
-		this.timezone = timezone;
-		this.gzMgr = gzMgr;
-		
-		if(middleEastCountryCodes.size() == 0 || middleEastTimezones.size() == 0)
-			setup();
+
+    @Override
+	public FILTER_TYPE getFilterType() {
+		return filterType;
+	}
+
+	public GeospatialLocationFilter(File gzFile, FILTER_TYPE filterType, String dBName) throws IOException {
+		this.filterType = filterType;
+		setup(gzFile, dBName);
 	}
 	
-	public static void setup() {
+	private void setup(File gzFile, String dBName) throws IOException {
+		logger.info("Setting up the geospatial filter ...");
+		// Setup the gazetteer manager
+		logger.info("Setting up the gazetteer manager ...");
+		gzMgr = new GazetteerManager(dBName);
+		gzMgr.createIndexFromGazetteerCSV(gzFile, true);
+		logger.info("Done setting up the geospatial filter");
+		
 		// Setup mongodb
 		Mongo m = null;
 		try {
@@ -67,7 +75,7 @@ public class UserLocationIdentifier {
 			logger.error("Error getting connection to MongoDB! Cannot proceed with this thread.");
 			return;
 		}
-		DB twitterDb = m.getDB(TwitterApplication.twitter.name());
+		DB twitterDb = m.getDB(dBName);
 		
 		/** Populate list of known middle east timezones **/
 		DBCollection tz = twitterDb.getCollection(TwitterCollections.timezones.name());
@@ -84,11 +92,19 @@ public class UserLocationIdentifier {
 		}
 		m.close();
 	}
-	
-	public boolean isLocatedInMiddleEast() {
+
+	@Override
+	public boolean filterUser(DBObject user) {
+		String location = user.get(users_SCHEMA.location.name()).toString();
+		String timezone = user.get(users_SCHEMA.timezone.name()).toString();
+		
+		// Sanity check
+		if ((location == null && timezone == null) || (location.equals("") && timezone.equals("")))
+				return false;
+		
 		// Check if the timezone is from the known middle east timezones
 		if (isKnownMiddleEastTimezone(timezone)) {
-			return true; // IMPORTANT CHANGE ME BACK TO CORRECT VALUE
+			return true;
 		}
 		
 		// Check if the lat long coordinates are from middle east country by using the reverse geocoding of Geonames
@@ -96,11 +112,11 @@ public class UserLocationIdentifier {
 			List<Float> coordinate = getLatLongFromLocation(location);
 			if (coordinate != null && coordinate.size() == 2) {
 				GeonamesServiceInvoker ws = new GeonamesServiceInvoker(coordinate.get(0), coordinate.get(1));
-//				System.out.println("Checking lat long with web service: " + coordinate.get(0) + ", " + coordinate.get(1));
+//						System.out.println("Checking lat long with web service: " + coordinate.get(0) + ", " + coordinate.get(1));
 				String countryCode = ws.getCountryCode();
-//				System.out.println("Returned country code: " + countryCode);
+//						System.out.println("Returned country code: " + countryCode);
 				if (middleEastCountryCodes.contains(countryCode)) {
-					LatLngCounter++;
+//					LatLngCounter++;
 //					System.out.println("# of lat/lng found: " + LatLngCounter);
 					return true;
 				}
@@ -119,7 +135,7 @@ public class UserLocationIdentifier {
 		}
 		return false;
 	}
-
+	
 	public boolean isKnownMiddleEastTimezone(String timezone) {
 		return middleEastTimezones.contains(timezone);
 	}
@@ -171,4 +187,5 @@ public class UserLocationIdentifier {
 //	    } else
 //	    	System.out.println("Nothing found!");
 //	}
+	
 }

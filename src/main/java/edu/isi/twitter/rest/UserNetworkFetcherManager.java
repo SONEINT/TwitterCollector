@@ -16,7 +16,6 @@ import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 
 import edu.isi.db.MongoDBHandler;
-import edu.isi.db.TwitterMongoDBHandler.TwitterApplication;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 import edu.isi.twitter.TwitterApplicationManager;
 import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
@@ -35,10 +34,10 @@ public class UserNetworkFetcherManager {
 				
 		/* Starting a thread for each application */
 		for(int i=0; i<allConfigs.size(); i++) {
-			ConfigurationBuilder config = allConfigs.get(i);
-			Thread t = new Thread(new UserNetworkFetcherThread(0, config, i));
-	        allThreads.add(t);
-	        t.start();
+			//ConfigurationBuilder config = allConfigs.get(i);
+			// Thread t = new Thread(new UserNetworkFetcherThread(0, config, i));
+	        // allThreads.add(t);
+	        // t.start();
 		}
 		// wait for the all the threads to finish before starting again
 		for (Thread t : allThreads) {
@@ -80,7 +79,7 @@ public class UserNetworkFetcherManager {
 		Mongo m;
 		try {
 			m = MongoDBHandler.getNewMongoConnection();
-			DB twitterDb = m.getDB(TwitterApplication.twitter.name());
+			DB twitterDb = m.getDB("twitter");
 			DBCollection currentThreadsColl = twitterDb.getCollection(TwitterCollections.currentThreads.name());
 
 			// Clear all the existing rows

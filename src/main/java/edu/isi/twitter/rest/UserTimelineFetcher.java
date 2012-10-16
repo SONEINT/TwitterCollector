@@ -21,19 +21,24 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.util.JSON;
 
+import edu.isi.db.TwitterMongoDBHandler.USER_SOURCE;
+import edu.isi.db.TwitterMongoDBHandler.usersWaitingList_SCHEMA;
+
 public class UserTimelineFetcher {
 
 	public static int PAGING_SIZE = 200;
 	private long uid;
 	private Twitter authenticatedTwitter;
+	private boolean followMentions;
 	
 	private static Logger logger = LoggerFactory.getLogger(UserTimelineFetcher.class);
 	private static int TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS = 14;
 	private int numberOfTweetsInLast2Weeks = 0;
 	
-	public UserTimelineFetcher(long uid, Twitter authenticatedTwitter) {
+	public UserTimelineFetcher(long uid, Twitter authenticatedTwitter, boolean followMentions) {
 		this.uid = uid;
 		this.authenticatedTwitter = authenticatedTwitter;
+		this.followMentions = followMentions;
 	}
 	
 	public int getNumberOfTweetsInLast2Weeks() {
@@ -41,123 +46,114 @@ public class UserTimelineFetcher {
 	}
 
 	public boolean fetchAndStoreInDB(DBCollection tweetsCollection, DBCollection userColl
-			, DBCollection usersFromTweetMentionsColl, DBCollection currentThreadsColl
+			, DBCollection usersWaitingListColl, DBCollection currentThreadsColl
 			, DBObject threadObj, boolean retryAfterRateLimitExceeded) {
 		
 		Paging paging = new Paging(1, PAGING_SIZE);
-		try {
-			ResponseList<Status> statuses = authenticatedTwitter.getUserTimeline(uid, paging);
-			logger.debug("Initial size of user's timeline history:" + statuses.size());
 
-			// 2 week's before time
-			Calendar date = Calendar.getInstance();
-			date.add(Calendar.HOUR, -(24* TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS));
-			Date twoWeeksAgo = date.getTime();
-			
-			doloop:
-			do {
-//				/** Sleeping the thread for some time to avoid generating too many requests very fast. Should not be greater than 3600/350 ~= 10sec **/
-//				Thread.sleep(TimeUnit.SECONDS.toMillis(2 + (int)Math.random() * ((5-2)+1)));
-				
-				long lastLongId = 0L; 
-				for (int i=0; i<statuses.size(); i++) {
-					Status status = statuses.get(i);
-					
-					/*** Store the tweet into the database ***/
-					String json = DataObjectFactory.getRawJSON(status);
-					DBObject dbObject = (DBObject)JSON.parse(json);
-					if(dbObject != null) {
-						try {
-							dbObject.put("tweetCreatedAt", status.getCreatedAt());
-							tweetsCollection.insert(dbObject);
-							UserMentionEntity[] mentionEntities = status.getUserMentionEntities();
-
-							if(mentionEntities != null)
-								addToUsersCollection(mentionEntities, userColl, usersFromTweetMentionsColl);
-						} catch (MongoException e) {
-							/** Break out of the outer loop as this tweet and all tweets older than this already exists.
-							 * We keep looping though in case this is a case where we had to restart because of the rate limit exceeding exception. **/
-							if(e.getCode() == 11000 && !retryAfterRateLimitExceeded) {
-								break doloop;
-							}
-							
-							if(e.getCode() == 11000)	// Duplicate tweet being inserted
-								continue;
-							else
-								logger.error("Mongo Exception: " + e.getMessage());
-						}
-						
-						// Increase the numberOfTweetsInLast2Weeks counter if the tweet was created in last 2 weeks
-						Date createdAt = status.getCreatedAt();
-						if(createdAt.after(twoWeeksAgo))
-							numberOfTweetsInLast2Weeks++;
+		// 2 week's before time
+		Calendar date = Calendar.getInstance();
+		date.add(Calendar.HOUR, -(24* TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS));
+		Date twoWeeksAgo = date.getTime();
+		
+		while (true) {
+			ResponseList<Status> statuses = null;
+			try {
+				statuses = authenticatedTwitter.getUserTimeline(uid, paging);
+			} catch (TwitterException e) {
+				// Taking care of the rate limiting
+				if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
+					logger.info("Reached rate limit!");
+					long timeToSleep = TimeUnit.MINUTES.toMillis(60); // Default sleep length = 60 minutes
+					if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
+						timeToSleep = TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60);
 					}
-					else
-						logger.error("Null db object for uid: " + uid);
-					
-					if(i == statuses.size()-1) {
-						lastLongId = status.getId();
-						paging.setMaxId(lastLongId-1);
-					}
-				}
-			} while ((statuses = authenticatedTwitter.getUserTimeline(uid, paging)).size() != 0);
-			return true;
-		} catch (TwitterException e) {
-			// Taking care of the rate limiting
-			if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
-				if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
 					try {
-						logger.info("Reached rate limit! Making timeline fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset());
+//						logger.error("Rate limit error: ", e);
+						logger.info("Reached rate limit! Making timeline fetcher thread sleep for " + TimeUnit.MILLISECONDS.toMinutes(timeToSleep) + " minutes.");
 						
 						threadObj.put("status", "sleeping");
 						currentThreadsColl.save(threadObj);
-						Thread.sleep(TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60));
+						try {
+							Thread.sleep(timeToSleep);
+						} catch (InterruptedException e1) {
+							logger.error("InterruptedException", e1);
+						}
 						threadObj.put("status", "notSleeping");
 						currentThreadsColl.save(threadObj);
-
+	
 						logger.info("Waking up the timeline fetcher thread!");
 						// Try again after waking up
-						fetchAndStoreInDB(tweetsCollection, userColl, usersFromTweetMentionsColl, currentThreadsColl, threadObj, true);
-					} catch (InterruptedException e1) {
-						logger.error("InterruptedException", e1);
+						statuses = authenticatedTwitter.getUserTimeline(uid, paging);
+					} catch (TwitterException e1) {
+						logger.error("Error getting tweets after waking up the thread!", e1);
 					}
-				} else {
-					logger.info("Making timeline fetcher thread sleep for 60 minutes");
+				} else
+					logger.error("Problem occured with user: " + uid + ". Error message: " + e.getMessage());
+			}
+			if (statuses == null || statuses.size() == 0)
+				break;
+			
+			long lastLongId = 0L; 
+			for (int i=0; i<statuses.size(); i++) {
+				Status status = statuses.get(i);
+				
+				/*** Store the tweet into the database ***/
+				String json = DataObjectFactory.getRawJSON(status);
+				DBObject dbObject = (DBObject)JSON.parse(json);
+				if(dbObject != null) {
 					try {
-						threadObj.put("status", "sleeping");
-						currentThreadsColl.save(threadObj);
-						Thread.sleep(TimeUnit.MINUTES.toMillis(60));
-						threadObj.put("status", "notSleeping");
-						currentThreadsColl.save(threadObj);
+						dbObject.put("tweetCreatedAt", status.getCreatedAt());
+						tweetsCollection.insert(dbObject);
 						
-						logger.info("Waking up the network fetcher thread!");
-						// Try again
-						fetchAndStoreInDB(tweetsCollection, userColl, usersFromTweetMentionsColl, currentThreadsColl, threadObj, true);
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
+						/** Add to userWaitingList collection if required **/
+						if (followMentions) {
+							UserMentionEntity[] mentionEntities = status.getUserMentionEntities();
+							if(mentionEntities != null)
+								addUsersToUsersWaitingListCollection(mentionEntities, usersWaitingListColl);
+						}
+					} catch (MongoException e) {
+						/** Break out as all the tweets older than this should already exists. **/
+						if(e.getCode() == 11000) {
+							return true;
+						}
+						else
+							logger.error("Mongo Exception: " + e.getMessage());
 					}
+					
+					// Increase the numberOfTweetsInLast2Weeks counter if the tweet was created in last 2 weeks
+					Date createdAt = status.getCreatedAt();
+					if(createdAt.after(twoWeeksAgo))
+						numberOfTweetsInLast2Weeks++;
 				}
-			} else
-				logger.error("Problem occured with user: " + uid + ". Error message: " + e.getMessage());
+				else
+					logger.error("Null db object for uid: " + uid);
+				
+				if(i == statuses.size()-1) {
+					lastLongId = status.getId();
+					paging.setMaxId(lastLongId-1);
+				}
+			}
 		}
 		return true;
 	}
 
-	private void addToUsersCollection(UserMentionEntity[] mentionEntities, DBCollection userColl, DBCollection usersFromTweetMentionsColl) {
+	private void addUsersToUsersWaitingListCollection(UserMentionEntity[] mentionEntities, DBCollection usersWaitingListColl) {
 		for (UserMentionEntity userMention : mentionEntities) {
 			try {
-				long uid = userMention.getId();
-				logger.debug("Adding user from tweet mentions: " + userMention.getScreenName());
-				BasicDBObject userObj = new BasicDBObject();
-				userObj.put("uid", new Long(uid).doubleValue());
-				userObj.put("name", userMention.getScreenName());
-				userObj.put("addedFromTweetMentions", true);
-				userObj.put("incomplete", 1);
-				usersFromTweetMentionsColl.save(userObj);
+				BasicDBObject userObj = new BasicDBObject(usersWaitingList_SCHEMA.uid.name(), new Long(userMention.getId()).doubleValue());
+				userObj.put(usersWaitingList_SCHEMA.name.name(), userMention.getScreenName());
+				userObj.put(usersWaitingList_SCHEMA.source.name(), USER_SOURCE.Mentions.name());
+				userObj.put(usersWaitingList_SCHEMA.friendDepth.name(), 0);
+				userObj.put(usersWaitingList_SCHEMA.followerDepth.name(), 0);
+				userObj.put(usersWaitingList_SCHEMA.followMentions.name(), false);
+				userObj.put(usersWaitingList_SCHEMA.parsed.name(), false);
+				
+				usersWaitingListColl.insert(userObj);
 			} catch (MongoException e) {
 				if (e.getCode() == 11000)
-					logger.debug("Tweet mention user already exists: " + userMention.getName() + ". Error: " + e.getMessage());
-				continue;
+					//logger.debug("Tweet mention user already exists: " + userMention.getName() + ". Error: " + e.getMessage());
+					continue;
 			} catch (Exception e) {
 				logger.error("Error occured while adding tweet mention user: " + userMention.getName(), e);
 				continue;

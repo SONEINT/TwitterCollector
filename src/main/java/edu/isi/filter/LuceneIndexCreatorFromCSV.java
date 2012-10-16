@@ -1,4 +1,4 @@
-package edu.isi.twitter;
+package edu.isi.filter;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,6 +16,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -74,6 +75,7 @@ public class LuceneIndexCreatorFromCSV {
 	    	}
 	    }
 	    indexWriter.close();
+	    reader.close();
 	    logger.info("Done creating index.");
 	}
 
@@ -87,8 +89,8 @@ public class LuceneIndexCreatorFromCSV {
 	}
 	
 	public IndexWriterConfig getIndexWriterConfig() {
-		IndexWriterConfig config = new IndexWriterConfig(GazetteerLuceneManager.APP_LUCENE_VERSION
-				, new StandardAnalyzer(GazetteerLuceneManager.APP_LUCENE_VERSION));
+		IndexWriterConfig config = new IndexWriterConfig(GazetteerManager.APP_LUCENE_VERSION
+				, new StandardAnalyzer(GazetteerManager.APP_LUCENE_VERSION));
 		if (createNewIndex)
 			config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 		else

@@ -4,7 +4,34 @@
 
 <web-app>
 	<display-name>Twitter data acquisition Web Application</display-name>
-
+	<context-param>
+		<param-name>friendGraphDepth</param-name>
+		<param-value>0</param-value>
+	</context-param>
+	<context-param>
+		<param-name>followerGraphDepth</param-name>
+		<param-value>1</param-value>
+	</context-param>
+	<context-param>
+		<param-name>mentionDepth</param-name>
+		<param-value>2</param-value>
+	</context-param>
+	<context-param>
+		<param-name>geospatialFilterOn</param-name>
+		<param-value>true</param-value>
+	</context-param>
+	<context-param>
+		<param-name>gazetteerFilePath</param-name>
+		<param-value>/Users/shubhamgupta/Documents/eclipse/workspace/TwitterDataAcquisition/data/middle-east-gazatteer-v2.csv</param-value>
+	</context-param>
+	<context-param>
+		<param-name>filterType</param-name>
+		<param-value>soft</param-value>
+	</context-param>
+	<context-param>
+		<param-name>DBName</param-name>
+		<param-value>twitter</param-value>
+	</context-param>
 	<listener>
     	<listener-class>edu.isi.twitter.WebappStartupManager</listener-class>
 	</listener>
