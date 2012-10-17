@@ -34,7 +34,7 @@ import edu.isi.db.TwitterMongoDBHandler.users_SCHEMA;
 import edu.isi.search.HashTagTweetsFetcherThread;
 import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
 import edu.isi.twitter.rest.UserNetworkFetcherThread;
-import edu.isi.twitter.rest.UserProfileFiller;
+import edu.isi.twitter.rest.UserProfileFillerThread;
 import edu.isi.twitter.rest.UserTweetsFetcherThread;
 import edu.isi.twitter.streaming.TwitterStreamManager;
 
@@ -49,8 +49,8 @@ public class WebappStartupManager implements ServletContextListener {
 		WebappStartupManager mgr = new WebappStartupManager();
 		try {
 			appConfig = new AppConfig(evt.getServletContext());
-			TwitterApplicationManager.setDBName(appConfig.getDBName());
 			
+			TwitterMongoDBHandler.createCollectionsAndIndexes(appConfig.getDBName());
 			mgr.initializeUsersCollection();
 			mgr.deployHashTagsTweetsFetcherThreads();
 			mgr.clearOldThreadsFromTable();
@@ -101,7 +101,7 @@ public class WebappStartupManager implements ServletContextListener {
 	
 	private void initializeUsersCollection() throws UnknownHostException, MongoException {
 		// ConfigurationBuilder and Twitter instances to be used in case when only user screen names are present
-		ConfigurationBuilder cb =  TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup);
+		ConfigurationBuilder cb =  TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup, appConfig.getDBName());
 		Twitter twitter = new TwitterFactory(cb.build()).getInstance();
 		
 		/** Seed users are copied to the users collection and various depths are also added in the user object **/
@@ -170,13 +170,13 @@ public class WebappStartupManager implements ServletContextListener {
 	
 	private void runUserProfileFillerThread() {
 		logger.info("Starting User profile lokup thread...");
-		Thread t = new Thread(new UserProfileFiller(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup), appConfig));
+		Thread t = new Thread(new UserProfileFillerThread(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup, appConfig.getDBName()), appConfig));
 		t.start();
 	}
 	
 	private void runUserNetworkFetcherThread() {
 		logger.info("Starting user network fetcher threads...");
-		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserNetworkGraphFetcher);
+		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserNetworkGraphFetcher, appConfig.getDBName());
 		
 		// Start a new thread for each application
 		for(int i=0; i<allConfigs.size(); i++) {
@@ -193,7 +193,7 @@ public class WebappStartupManager implements ServletContextListener {
 	
 	private void runTwitterTimeLineFetcher() {
 		logger.info("Starting user tweet fetcher threads...");
-		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserTimelineFetcher);
+		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserTimelineFetcher, appConfig.getDBName());
 		
 		// Start a new thread for each application
 		for(int i=0; i<allConfigs.size(); i++) {
@@ -214,7 +214,7 @@ public class WebappStartupManager implements ServletContextListener {
 			return;
 		
 		logger.info("Starting hash tags tweet fetcher threads...");
-		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.Search);
+		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.Search, appConfig.getDBName());
 		
 		// Start a new thread for each application
 		for(int i=0; i<allConfigs.size(); i++) {

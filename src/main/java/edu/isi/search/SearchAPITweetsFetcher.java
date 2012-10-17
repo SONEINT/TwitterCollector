@@ -18,6 +18,9 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.util.JSON;
 
+import edu.isi.db.TwitterMongoDBHandler.TWEET_SOURCE;
+import edu.isi.db.TwitterMongoDBHandler.tweets_SCHEMA;
+
 public class SearchAPITweetsFetcher {
 	
 	private String queryString;
@@ -44,7 +47,7 @@ public class SearchAPITweetsFetcher {
         
         while (true) {
         	if(maxId != 0l)
-        		query.setMaxId(maxId-1);
+        		query.setMaxId(maxId);
         	QueryResult result = null;
         	try {
         		result = authenticatedTwitter.search(query);
@@ -83,8 +86,8 @@ public class SearchAPITweetsFetcher {
         		break;
         	
             List<Tweet> tweets = result.getTweets();
-            if(tweets.size() == 1 && maxId != 0l)
-            	break;
+//            if(tweets.size() == 1 && maxId != 0l)
+//            	break;
             
             for (int i=0; i<tweets.size(); i++) {
             	Tweet tweet = tweets.get(i);
@@ -92,8 +95,8 @@ public class SearchAPITweetsFetcher {
 				DBObject dbObject = (DBObject)JSON.parse(json);
 				if(dbObject != null) {
 					try {
-						dbObject.put("tweetCreatedAt", tweet.getCreatedAt());
-						dbObject.put("source-tag", "searchAPI");
+						dbObject.put(tweets_SCHEMA.tweetCreatedAt.name(), tweet.getCreatedAt());
+						dbObject.put(tweets_SCHEMA.APISource.name(), TWEET_SOURCE.Search.name());
 						tweetsCollection.insert(dbObject);
 //    						UserMentionEntity[] mentionEntities = tweet.getUserMentionEntities();
 //
@@ -113,12 +116,12 @@ public class SearchAPITweetsFetcher {
 				}
             	
 				if(i == tweets.size()-1)
-					maxId = tweet.getId();
+					maxId = tweet.getId()-1;
             }
             // Sleeping thread for 2 seconds to avoid generating requests too fast
             try {
 //            	logger.info("sleeping");
-				Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+				Thread.sleep(TimeUnit.SECONDS.toMillis(2));
 //				logger.info("waking up");
 			} catch (InterruptedException e) {
 				e.printStackTrace();

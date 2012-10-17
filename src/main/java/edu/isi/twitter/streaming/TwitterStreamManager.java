@@ -36,7 +36,7 @@ public class TwitterStreamManager implements Runnable{
 	private void deployAllStreams() {
 		try {
 			// Get all the Twitter configurations (for each app) for the streaming
-			List<ConfigurationBuilder> allStreamingConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.Streaming);
+			List<ConfigurationBuilder> allStreamingConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.Streaming, appConfig.getDBName());
 			int numberOfApps = allStreamingConfigs.size();
 			
 			// Get the list of users to filter stream

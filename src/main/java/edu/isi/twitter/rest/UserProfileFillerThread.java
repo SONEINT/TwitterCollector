@@ -29,13 +29,13 @@ import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 import edu.isi.db.TwitterMongoDBHandler.usersWaitingList_SCHEMA;
 import edu.isi.twitter.AppConfig;
 
-public class UserProfileFiller implements Runnable {
+public class UserProfileFillerThread implements Runnable {
 	private ConfigurationBuilder cb;
 	private AppConfig appConfig;
 	
-	private static Logger logger = LoggerFactory.getLogger(UserProfileFiller.class);
+	private static Logger logger = LoggerFactory.getLogger(UserProfileFillerThread.class);
 	
-	public UserProfileFiller(ConfigurationBuilder cb, AppConfig appConfig) {
+	public UserProfileFillerThread(ConfigurationBuilder cb, AppConfig appConfig) {
 		this.cb = cb;
 		this.appConfig = appConfig;
 	}

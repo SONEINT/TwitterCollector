@@ -16,23 +16,14 @@ import com.mongodb.MongoException;
 
 import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
+import edu.isi.db.TwitterMongoDBHandler.applications_SCHEMA;
 
 public class TwitterApplicationManager {
-	private static String dBName = "twitter"; // default value
-	
 	public enum ApplicationTag {
 		Streaming, UserTimelineFetcher, UserProfileLookup, UserNetworkGraphFetcher, Search
 	}
 	
-	public enum TwitterAccountKeys {
-		user_id, access_token, access_token_secret, consumer_key, consumer_key_secret
-	}
-	
-	public static void setDBName(String name) {
-		dBName = name;
-	}
-	
-	public static List<ConfigurationBuilder> getAllApplicationConfigurations() {
+	public static List<ConfigurationBuilder> getAllApplicationConfigurations(String dBName) {
 		List<ConfigurationBuilder> appConfigs = new ArrayList<ConfigurationBuilder>();
 		Mongo m = null;
 		try {
@@ -61,23 +52,23 @@ public class TwitterApplicationManager {
 		return appConfigs;
 	}
 	
-	public static ConfigurationBuilder getOneConfigurationBuilderByTag(ApplicationTag tag) {
-		List<ConfigurationBuilder> configs = getAllConfigurationBuildersByTag(tag);
+	public static ConfigurationBuilder getOneConfigurationBuilderByTag(ApplicationTag tag, String dBName) {
+		List<ConfigurationBuilder> configs = getAllConfigurationBuildersByTag(tag, dBName);
 		if (configs.isEmpty())
 			return null;
 		else
 			return configs.get(0);
 	}
 	
-	public static List<ConfigurationBuilder> getAllConfigurationBuildersByTag(ApplicationTag tag) {
+	public static List<ConfigurationBuilder> getAllConfigurationBuildersByTag(ApplicationTag tag, String dBName) {
 		List<ConfigurationBuilder> appConfigs = new ArrayList<ConfigurationBuilder>();
 		Mongo m = null;
 		try {
 			m = MongoDBHandler.getNewMongoConnection();
 			DB twitterDb = m.getDB(dBName);
-			DBCollection appsColl = twitterDb.getCollection("applications");
+			DBCollection appsColl = twitterDb.getCollection(TwitterCollections.applications.name());
 			
-			DBCursor appCursor = appsColl.find(new BasicDBObject("tag", tag.name()));
+			DBCursor appCursor = appsColl.find(new BasicDBObject(applications_SCHEMA.tag.name(), tag.name()));
 			while(appCursor.hasNext()) {
 				appConfigs.add(buildConfigurationBuilder(appCursor.next()));
 			}
@@ -94,10 +85,10 @@ public class TwitterApplicationManager {
 	
 	private static ConfigurationBuilder buildConfigurationBuilder(DBObject appObj) {
 		ConfigurationBuilder cb = new ConfigurationBuilder()
-	    	.setOAuthConsumerKey(appObj.get(TwitterAccountKeys.consumer_key.name()).toString())
-	    	.setOAuthConsumerSecret(appObj.get(TwitterAccountKeys.consumer_key_secret.name()).toString())
-	    	.setOAuthAccessToken(appObj.get(TwitterAccountKeys.access_token.name()).toString())
-	    	.setOAuthAccessTokenSecret(appObj.get(TwitterAccountKeys.access_token_secret.name()).toString())
+	    	.setOAuthConsumerKey(appObj.get(applications_SCHEMA.consumer_key.name()).toString())
+	    	.setOAuthConsumerSecret(appObj.get(applications_SCHEMA.consumer_key_secret.name()).toString())
+	    	.setOAuthAccessToken(appObj.get(applications_SCHEMA.access_token.name()).toString())
+	    	.setOAuthAccessTokenSecret(appObj.get(applications_SCHEMA.access_token_secret.name()).toString())
 	    	.setJSONStoreEnabled(true)
 	    	.setIncludeRTsEnabled(true);
 		return cb;

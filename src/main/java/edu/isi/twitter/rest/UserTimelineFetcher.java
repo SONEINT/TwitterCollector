@@ -21,7 +21,9 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.util.JSON;
 
+import edu.isi.db.TwitterMongoDBHandler.TWEET_SOURCE;
 import edu.isi.db.TwitterMongoDBHandler.USER_SOURCE;
+import edu.isi.db.TwitterMongoDBHandler.tweets_SCHEMA;
 import edu.isi.db.TwitterMongoDBHandler.usersWaitingList_SCHEMA;
 
 public class UserTimelineFetcher {
@@ -103,7 +105,8 @@ public class UserTimelineFetcher {
 				DBObject dbObject = (DBObject)JSON.parse(json);
 				if(dbObject != null) {
 					try {
-						dbObject.put("tweetCreatedAt", status.getCreatedAt());
+						dbObject.put(tweets_SCHEMA.tweetCreatedAt.name(), status.getCreatedAt());
+						dbObject.put(tweets_SCHEMA.APISource.name(), TWEET_SOURCE.Timeline.name());
 						tweetsCollection.insert(dbObject);
 						
 						/** Add to userWaitingList collection if required **/

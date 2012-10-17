@@ -22,8 +22,14 @@ public class TwitterMongoDBHandler {
 	private static Logger logger = LoggerFactory.getLogger(TwitterMongoDBHandler.class);
 	
 	public enum TwitterCollections {
-		users, tweets, usersWaitingList, usersGraph, usersGraphActionList, seedUsers, 
-		currentThreads, applications, timezones, countryCodes, seedHashTags
+		// Seed collections
+		seedUsers, seedHashTags,
+		
+		// Data storing collections
+		users, tweets, usersGraph, usersGraphActionList,  
+		
+		// Application management collections
+		usersWaitingList, currentThreads, applications, timezones, countryCodes
 	}
 	
 	public enum users_SCHEMA {
@@ -68,7 +74,16 @@ public class TwitterMongoDBHandler {
 	}
 	
 	public enum usersWaitingList_SCHEMA {
-		uid, name, parsed, source, location, timezone, created, isGeoEnabled, friendDepth, followerDepth, followMentions, profileCompleteAndChecked, missingProfile
+		uid, name, parsed, source, location, timezone, created, isGeoEnabled, friendDepth, 
+		followerDepth, followMentions, profileCompleteAndChecked, missingProfile, linkType
+	}
+	
+	public enum tweets_SCHEMA {
+		APISource, tweetCreatedAt, id
+	}
+	
+	public enum applications_SCHEMA {
+		tag, user_id, access_token, access_token_secret, consumer_key, consumer_key_secret
 	}
 	
 	public enum THREAD_TYPE {
@@ -77,6 +92,10 @@ public class TwitterMongoDBHandler {
 	
 	public enum USER_SOURCE {
 		Graph, Mentions, Seed
+	}
+	
+	public enum TWEET_SOURCE {
+		Timeline, Streaming, Search
 	}
 	
 	public static String[] getSeedHashTagsList(String dbName) throws UnknownHostException, MongoException {
@@ -162,6 +181,28 @@ public class TwitterMongoDBHandler {
         	arr[i++] = userId;
         }
         return arr;
+	}
+	
+	public static void createCollectionsAndIndexes(String dbName) throws UnknownHostException, MongoException {
+		Mongo m = MongoDBHandler.getNewMongoConnection();
+		DB db = m.getDB(dbName);
+		
+		/** Create all the required collections **/
+		DBCollection usersColl 					= db.getCollection(TwitterCollections.users.name());
+		DBCollection tweetsColl 				= db.getCollection(TwitterCollections.tweets.name());
+		DBCollection usersWaitingListColl 		= db.getCollection(TwitterCollections.usersWaitingList.name());
+		DBCollection usersGraphColl 			= db.getCollection(TwitterCollections.usersGraph.name());
+		DBCollection usersGraphActionListColl 	= db.getCollection(TwitterCollections.usersGraphActionList.name());
+		db.getCollection(TwitterCollections.currentThreads.name());
+
+		/** Create indexes */
+		usersColl.ensureIndex(new BasicDBObject(users_SCHEMA.uid.name(), 1), new BasicDBObject("unique", true));
+		usersWaitingListColl.ensureIndex(new BasicDBObject(usersWaitingList_SCHEMA.uid.name(), 1), new BasicDBObject("unique", true));
+		tweetsColl.ensureIndex(new BasicDBObject(tweets_SCHEMA.id.name(), 1), new BasicDBObject("unique", true));
+		usersGraphColl.ensureIndex(new BasicDBObject(usersGraph_SCHEMA.uid.name(), 1));
+		usersGraphActionListColl.ensureIndex(new BasicDBObject(usersGraphActionList_SCHEMA.uid.name(), 1));
+		
+		m.close();
 	}
 	
 	/*

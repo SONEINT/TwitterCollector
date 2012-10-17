@@ -159,7 +159,7 @@ public class UserNetworkFetcher {
 				
 				/** Add to the usersWaitingList if required **/
 				if (addToUsersWaitingList) {
-					addUserToUsersWaitingListCollection(link_id, usersWaitingListColl);
+					addUserToUsersWaitingListCollection(link_id, usersWaitingListColl, link_type);
 				}
 			}
 			
@@ -192,13 +192,14 @@ public class UserNetworkFetcher {
 		}
 	}
 
-	private void addUserToUsersWaitingListCollection(Long uid, DBCollection usersWaitingListColl) {
+	private void addUserToUsersWaitingListCollection(Long uid, DBCollection usersWaitingListColl, LINK_TYPE link_type) {
 		DBObject usr = new BasicDBObject(usersWaitingList_SCHEMA.uid.name(), uid);
 		usr.put(usersWaitingList_SCHEMA.source.name(), USER_SOURCE.Graph.name());
 		usr.put(usersWaitingList_SCHEMA.friendDepth.name(), friendDepth-1);
 		usr.put(usersWaitingList_SCHEMA.followerDepth.name(), followerDepth-1);
 		usr.put(usersWaitingList_SCHEMA.followMentions.name(), false);
 		usr.put(usersWaitingList_SCHEMA.parsed.name(), false);
+		usr.put(usersWaitingList_SCHEMA.linkType.name(), link_type.name());
 		
 		try {
 			usersWaitingListColl.insert(usr);

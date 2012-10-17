@@ -2,8 +2,6 @@ package edu.isi.db;
 
 import java.net.UnknownHostException;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -15,13 +13,8 @@ public class TwitterMongoTest {
 
 	public static void main(String[] args) throws UnknownHostException, MongoException, InterruptedException {
 		
-		Set<Long> test = new HashSet<Long>();
-		test.add(new Long(0l));
-		test.add(new Long(1l));
-		test.add(new Long(2l));
-		test.add(new Long(2l));
-		test.add(new Long(2l));
-		System.out.println(test.size());
+		TwitterMongoDBHandler.createCollectionsAndIndexes("TEST");
+		System.out.println("Done");
 		System.exit(0);
 		
 		Mongo m = MongoDBHandler.getNewMongoConnection();

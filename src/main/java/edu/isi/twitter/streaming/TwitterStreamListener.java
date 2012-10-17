@@ -21,8 +21,10 @@ import com.mongodb.WriteConcern;
 import com.mongodb.util.JSON;
 
 import edu.isi.db.MongoDBHandler;
+import edu.isi.db.TwitterMongoDBHandler.TWEET_SOURCE;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 import edu.isi.db.TwitterMongoDBHandler.USER_SOURCE;
+import edu.isi.db.TwitterMongoDBHandler.tweets_SCHEMA;
 import edu.isi.db.TwitterMongoDBHandler.usersWaitingList_SCHEMA;
 import edu.isi.twitter.AppConfig;
 
@@ -51,6 +53,8 @@ public class TwitterStreamListener implements StatusListener {
 			/*** Store the tweet into the database ***/
 			String json = DataObjectFactory.getRawJSON(status);
 			DBObject dbObject = (DBObject)JSON.parse(json);
+			dbObject.put(tweets_SCHEMA.tweetCreatedAt.name(), status.getCreatedAt());
+			dbObject.put(tweets_SCHEMA.APISource.name(), TWEET_SOURCE.Streaming.name());
 			tweetCollection.insert(dbObject);
 			
 			// logger.debug("Received tweet from stream: " + status.getText());

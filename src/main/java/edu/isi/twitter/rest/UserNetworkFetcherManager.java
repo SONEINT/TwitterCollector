@@ -28,7 +28,7 @@ public class UserNetworkFetcherManager {
 		clearOldThreadsFromTable();
 		logger.info("Starting user's network fetcher manager...");
 		List<Thread> allThreads = new ArrayList<Thread>();
-		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserNetworkGraphFetcher);
+		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserNetworkGraphFetcher, "twitter");
 		
 		// int minIteration = getMinimumIterationforTable(TwitterCollections.usersgraphlist);
 				
