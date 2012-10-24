@@ -17,6 +17,7 @@ import twitter4j.conf.ConfigurationBuilder;
 import com.mongodb.MongoException;
 
 import edu.isi.db.TwitterMongoDBHandler;
+import edu.isi.statistics.StatisticsManager;
 import edu.isi.twitter.AppConfig;
 import edu.isi.twitter.TwitterApplicationManager;
 import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
@@ -24,13 +25,15 @@ import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
 public class TwitterStreamManager implements Runnable{
 	
 	private AppConfig appConfig;
+	private StatisticsManager statsMgr;
 	private static Logger logger = LoggerFactory.getLogger(TwitterStreamManager.class);
 	private static int MAX_USERS_PER_APP = 5000;
 	// private static int MAX_KEYWORDS_PER_APP = 400;
 	private List<TwitterStream> currentStreams = new ArrayList<TwitterStream>();
 
-	public TwitterStreamManager(AppConfig appConfig) {
+	public TwitterStreamManager(AppConfig appConfig, StatisticsManager statsMgr) {
 		this.appConfig = appConfig;
+		this.statsMgr = statsMgr;
 	}
 
 	private void deployAllStreams() {
@@ -45,6 +48,8 @@ public class TwitterStreamManager implements Runnable{
 			
 			logger.info("Number of users to filter on in Twitter stream: " + userIdsToFollow.length);
 			logger.info("Number of keywords to track on in Twitter stream: " + keywords.length);
+			statsMgr.setStreamingUsersCount(userIdsToFollow.length);
+			statsMgr.setTotalHashtagsCount(keywords.length);
 			
 			// Start streaming filter
 			int minNumberOfAppsRequired = (userIdsToFollow.length/MAX_USERS_PER_APP) + 1;
@@ -102,7 +107,7 @@ public class TwitterStreamManager implements Runnable{
 	private void startNewStreamingThread(long[] users, ConfigurationBuilder cb) throws UnknownHostException, MongoException {
 		FilterQuery fltrQry = new FilterQuery(users);
 		TwitterStream twitterStream = new TwitterStreamFactory(cb.build()).getInstance();
-		twitterStream.addListener(new TwitterStreamListener(appConfig));
+		twitterStream.addListener(new TwitterStreamListener(appConfig, statsMgr));
 		// A new thread is automatically created by Twitter4j
 		twitterStream.filter(fltrQry);
 		currentStreams.add(twitterStream);
@@ -112,7 +117,7 @@ public class TwitterStreamManager implements Runnable{
 		FilterQuery fltrQry = new FilterQuery();
 		fltrQry.track(keywords).follow(users);
 		TwitterStream twitterStream = new TwitterStreamFactory(cb.build()).getInstance();
-		twitterStream.addListener(new TwitterStreamListener(appConfig));
+		twitterStream.addListener(new TwitterStreamListener(appConfig, statsMgr));
 		// A new thread is automatically created by Twitter4j
 		twitterStream.filter(fltrQry);
 		currentStreams.add(twitterStream);

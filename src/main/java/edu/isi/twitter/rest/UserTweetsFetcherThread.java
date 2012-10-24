@@ -30,6 +30,7 @@ import edu.isi.db.TwitterMongoDBHandler.THREAD_TYPE;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 import edu.isi.db.TwitterMongoDBHandler.currentThreads_SCHEMA;
 import edu.isi.db.TwitterMongoDBHandler.users_SCHEMA;
+import edu.isi.statistics.StatisticsManager;
 import edu.isi.twitter.AppConfig;
 
 public class UserTweetsFetcherThread implements Runnable {
@@ -39,16 +40,18 @@ public class UserTweetsFetcherThread implements Runnable {
 	private Logger logger = LoggerFactory.getLogger(UserNetworkFetcherThread.class);
 	private static int USER_LIST_COUNT = 50;
 	private AppConfig appConfig;
+	private StatisticsManager statsMgr;
 	
 	private static int MAX_DAYS_TO_WAIT_FOR_NEXT_QUERY = 14;
 	private static int TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS = 14;
 	private static long CURRENT_USER_TIME_DELTA = 8640000000l; // 100 days
 	
 	
-	public UserTweetsFetcherThread(ConfigurationBuilder cb, int index, AppConfig appConfig) {
+	public UserTweetsFetcherThread(ConfigurationBuilder cb, int index, AppConfig appConfig, StatisticsManager statsMgr) {
 		this.cb = cb;
 		this.threadName = THREAD_TYPE.TweetFetcher.name() + index;
 		this.appConfig = appConfig;
+		this.statsMgr = statsMgr;
 	}
 	
 	public void run() {
@@ -75,6 +78,9 @@ public class UserTweetsFetcherThread implements Runnable {
 		DBCollection tweetsColl = twitterDb.getCollection(TwitterCollections.tweets.name());
 		DBCollection usersWaitingListColl = twitterDb.getCollection(TwitterCollections.usersWaitingList.name());
 		DBCollection currentThreadsColl = twitterDb.getCollection(TwitterCollections.currentThreads.name());
+		DBCollection tweetsLogColl = twitterDb.getCollection(TwitterCollections.tweetsLog.name());
+		DBCollection replyToColl = twitterDb.getCollection(TwitterCollections.replyToTable.name());
+		DBCollection mentionsColl = twitterDb.getCollection(TwitterCollections.mentionsTable.name());
 		Twitter authenticatedTwitter = new TwitterFactory(cb.build()).getInstance();
 		
 		// Register the thread in the currentThreads table
@@ -152,7 +158,8 @@ public class UserTweetsFetcherThread implements Runnable {
         	/** Fetch the user's timeline **/
         	logger.info("Fetching tweets for userid:" + uid);
         	UserTimelineFetcher f = new UserTimelineFetcher(uid, authenticatedTwitter, appConfig.isFollowMentions());
-        	boolean success = f.fetchAndStoreInDB(tweetsColl, usersColl, usersWaitingListColl, currentThreadsColl, threadObj, false);
+        	boolean success = f.fetchAndStoreInDB(tweetsColl, usersColl, usersWaitingListColl, currentThreadsColl, 
+        			threadObj, tweetsLogColl, replyToColl, mentionsColl);
         	if (success) {
         		try {
         			usr.put(users_SCHEMA.lastUpdatedTweetFetcher.name(), new Date());
@@ -164,6 +171,9 @@ public class UserTweetsFetcherThread implements Runnable {
         			
         	        usr.put("onceDone", true); // for debugging purposes
             		usersColl.save(usr);
+            		
+            		// Add to the stats
+            		statsMgr.addTimelineUserTraversed(uid);
         		} catch (MongoException me) {
         			logger.error("Error saving user's last updated time stamp.", me);
         		}

@@ -29,7 +29,13 @@ public class TwitterMongoDBHandler {
 		users, tweets, usersGraph, usersGraphActionList,  
 		
 		// Application management collections
-		usersWaitingList, currentThreads, applications, timezones, countryCodes
+		usersWaitingList, currentThreads, applications, timezones, countryCodes,
+		
+		// Statistics collections
+		tweetsStats, linksStats,
+		
+		// Store relationships
+		tweetsLog, replyToTable, hashTagTweetsTable, mentionsTable 
 	}
 	
 	public enum users_SCHEMA {
@@ -84,6 +90,30 @@ public class TwitterMongoDBHandler {
 	
 	public enum applications_SCHEMA {
 		tag, user_id, access_token, access_token_secret, consumer_key, consumer_key_secret
+	}
+	
+	public enum tweetsStats_SCHEMA {
+		time, timeReadable, count
+	}
+	
+	public enum linksStats_SCHEMA {
+		time, timeReadable, count
+	}
+	
+	public enum tweetsLog_SCHEMA {
+		tweetId, source, insertionDate, tweetCreationDate
+	}
+	
+	public enum replyToTable_SCHEMA {
+		tweetID, sourceTweetID, uid, parentUid, insertionDate, tweetCreationDate
+	}
+	
+	public enum hashTagTweetTable_SCHEMA {
+		tweetID, tag, uid, insertionDate, tweetCreationDate
+	}
+	
+	public enum mentionsTable_SCHEMA {
+		tweetID, uid, mentionUid, insertionDate, tweetCreationDate
 	}
 	
 	public enum THREAD_TYPE {
@@ -193,16 +223,84 @@ public class TwitterMongoDBHandler {
 		DBCollection usersWaitingListColl 		= db.getCollection(TwitterCollections.usersWaitingList.name());
 		DBCollection usersGraphColl 			= db.getCollection(TwitterCollections.usersGraph.name());
 		DBCollection usersGraphActionListColl 	= db.getCollection(TwitterCollections.usersGraphActionList.name());
+		DBCollection applicationsColl 			= db.getCollection(TwitterCollections.applications.name());
+		DBCollection tweetsLogColl 				= db.getCollection(TwitterCollections.tweetsLog.name());
+		DBCollection replyToColl 				= db.getCollection(TwitterCollections.replyToTable.name());
+		DBCollection hashtagsTweetColl 			= db.getCollection(TwitterCollections.hashTagTweetsTable.name());
+		DBCollection mentionsColl 				= db.getCollection(TwitterCollections.mentionsTable.name());
+		
 		db.getCollection(TwitterCollections.currentThreads.name());
 
 		/** Create indexes */
-		usersColl.ensureIndex(new BasicDBObject(users_SCHEMA.uid.name(), 1), new BasicDBObject("unique", true));
-		usersWaitingListColl.ensureIndex(new BasicDBObject(usersWaitingList_SCHEMA.uid.name(), 1), new BasicDBObject("unique", true));
-		tweetsColl.ensureIndex(new BasicDBObject(tweets_SCHEMA.id.name(), 1), new BasicDBObject("unique", true));
+		DBObject uniqueIndexOption = new BasicDBObject("unique", true).append("dropDups", true);
+		usersColl.ensureIndex(new BasicDBObject(users_SCHEMA.uid.name(), 1), uniqueIndexOption);
+		usersWaitingListColl.ensureIndex(new BasicDBObject(usersWaitingList_SCHEMA.uid.name(), 1), uniqueIndexOption);
+		tweetsColl.ensureIndex(new BasicDBObject(tweets_SCHEMA.id.name(), 1), uniqueIndexOption);
+		tweetsColl.ensureIndex(new BasicDBObject("user.id", 1), uniqueIndexOption);
 		usersGraphColl.ensureIndex(new BasicDBObject(usersGraph_SCHEMA.uid.name(), 1));
 		usersGraphActionListColl.ensureIndex(new BasicDBObject(usersGraphActionList_SCHEMA.uid.name(), 1));
+		applicationsColl.ensureIndex(new BasicDBObject(applications_SCHEMA.user_id.name(), 1), uniqueIndexOption);
+		
+		
+		tweetsLogColl.ensureIndex(new BasicDBObject(tweetsLog_SCHEMA.tweetId.name(), 1), uniqueIndexOption);
+		tweetsLogColl.ensureIndex(new BasicDBObject(tweetsLog_SCHEMA.source.name(), 1));
+		tweetsLogColl.ensureIndex(new BasicDBObject(tweetsLog_SCHEMA.insertionDate.name(), 1));
+		
+		replyToColl.ensureIndex(new BasicDBObject(replyToTable_SCHEMA.uid.name(), 1));
+		replyToColl.ensureIndex(new BasicDBObject(replyToTable_SCHEMA.parentUid.name(), 1));
+		replyToColl.ensureIndex(new BasicDBObject(replyToTable_SCHEMA.tweetCreationDate.name(), 1));
+		
+		hashtagsTweetColl.ensureIndex(new BasicDBObject(hashTagTweetTable_SCHEMA.tag.name(), 1));
+		hashtagsTweetColl.ensureIndex(new BasicDBObject(hashTagTweetTable_SCHEMA.uid.name(), 1));
+		hashtagsTweetColl.ensureIndex(new BasicDBObject(hashTagTweetTable_SCHEMA.tweetCreationDate.name(), 1));
+		
+		mentionsColl.ensureIndex(new BasicDBObject(mentionsTable_SCHEMA.uid.name(), 1));
+		mentionsColl.ensureIndex(new BasicDBObject(mentionsTable_SCHEMA.mentionUid.name(), 1));
+		mentionsColl.ensureIndex(new BasicDBObject(mentionsTable_SCHEMA.tweetCreationDate.name(), 1));
 		
 		m.close();
+	}
+	
+	public static void addToTweetLogTable (DBCollection tweetLogColl, String source, long tweetId, 
+			 long tweetInsertionDate, long tweetCreationDate) throws MongoException {
+		tweetLogColl.insert(
+				new BasicDBObject(tweetsLog_SCHEMA.tweetId.name(), tweetId)
+				.append(tweetsLog_SCHEMA.source.name(), source)
+				.append(tweetsLog_SCHEMA.insertionDate.name(), tweetInsertionDate)
+				.append(tweetsLog_SCHEMA.tweetCreationDate.name(), tweetCreationDate));
+	}
+	
+	public static void addToReplyToTable (DBCollection replyToColl, long tweetId, long sourceTweetId, long uid
+			, long parentUid, long insertionDate, long tweetCreationDate) {
+		replyToColl.insert(
+				new BasicDBObject(replyToTable_SCHEMA.tweetID.name(), tweetId)
+				.append(replyToTable_SCHEMA.sourceTweetID.name(), sourceTweetId)
+				.append(replyToTable_SCHEMA.uid.name(), uid)
+				.append(replyToTable_SCHEMA.parentUid.name(), parentUid)
+				.append(replyToTable_SCHEMA.insertionDate.name(), insertionDate)
+				.append(replyToTable_SCHEMA.tweetCreationDate.name(), tweetCreationDate)
+				);
+	}
+	
+	
+	public static void addToMentionsTable (DBCollection mentionsColl, long tweetId, long uid, 
+			long mentionUid, long insertionDate, long tweetCreationDate) {
+		mentionsColl.insert(
+				new BasicDBObject(mentionsTable_SCHEMA.tweetID.name(), tweetId)
+				.append(mentionsTable_SCHEMA.uid.name(), uid)
+				.append(mentionsTable_SCHEMA.mentionUid.name(), mentionUid)
+				.append(mentionsTable_SCHEMA.insertionDate.name(), insertionDate)
+				.append(mentionsTable_SCHEMA.tweetCreationDate.name(), tweetCreationDate));
+	}
+	
+	public static void addTohashTagTweetsTable(DBCollection hashTagTweetsTable, String hashTag, long tweetId, long uid, long insertionDate, long tweetCreationDate) {
+		hashTagTweetsTable.insert(
+				new BasicDBObject(hashTagTweetTable_SCHEMA.tweetID.name(), tweetId)
+				.append(hashTagTweetTable_SCHEMA.uid.name(), uid)
+				.append(hashTagTweetTable_SCHEMA.tag.name(), hashTag)
+				.append(hashTagTweetTable_SCHEMA.insertionDate.name(), insertionDate)
+				.append(hashTagTweetTable_SCHEMA.tweetCreationDate.name(), tweetCreationDate));
+		
 	}
 	
 	/*

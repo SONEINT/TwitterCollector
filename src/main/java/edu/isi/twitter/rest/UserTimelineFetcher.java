@@ -4,6 +4,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +22,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.util.JSON;
 
+import edu.isi.db.TwitterMongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TWEET_SOURCE;
 import edu.isi.db.TwitterMongoDBHandler.USER_SOURCE;
 import edu.isi.db.TwitterMongoDBHandler.tweets_SCHEMA;
@@ -47,9 +49,9 @@ public class UserTimelineFetcher {
 		return numberOfTweetsInLast2Weeks;
 	}
 
-	public boolean fetchAndStoreInDB(DBCollection tweetsCollection, DBCollection userColl
-			, DBCollection usersWaitingListColl, DBCollection currentThreadsColl
-			, DBObject threadObj, boolean retryAfterRateLimitExceeded) {
+	public boolean fetchAndStoreInDB(DBCollection tweetsCollection, DBCollection userColl, 
+			DBCollection usersWaitingListColl, DBCollection currentThreadsColl, DBObject threadObj, 
+			DBCollection tweetsLogColl, DBCollection replyToColl, DBCollection mentionsColl) {
 		
 		Paging paging = new Paging(1, PAGING_SIZE);
 
@@ -109,19 +111,36 @@ public class UserTimelineFetcher {
 						dbObject.put(tweets_SCHEMA.APISource.name(), TWEET_SOURCE.Timeline.name());
 						tweetsCollection.insert(dbObject);
 						
-						/** Add to userWaitingList collection if required **/
-						if (followMentions) {
-							UserMentionEntity[] mentionEntities = status.getUserMentionEntities();
-							if(mentionEntities != null)
-								addUsersToUsersWaitingListCollection(mentionEntities, usersWaitingListColl);
+						DateTime now = new DateTime();
+						// Add this tweet's information in the tweetsLog collection
+						TwitterMongoDBHandler.addToTweetLogTable(tweetsLogColl, TWEET_SOURCE.Timeline.name(), 
+								status.getId(), now.getMillis(), status.getCreatedAt().getTime());
+						
+						// Add to replyTo table is the tweet was posted in reply to some previous tweet
+						if (status.getInReplyToStatusId() != -1) {
+							TwitterMongoDBHandler.addToReplyToTable(replyToColl, status.getId(), status.getInReplyToStatusId()
+									, status.getUser().getId(), status.getInReplyToUserId(), now.getMillis(), status.getCreatedAt().getTime());
+						}
+						
+						// Add to userWaitingList collection if required
+						UserMentionEntity[] mentionedEntities = status.getUserMentionEntities();
+						if (mentionedEntities != null && mentionedEntities.length != 0) {
+							if (followMentions) {
+								addUsersToUsersWaitingListAndMentionsCollection(mentionedEntities, usersWaitingListColl, mentionsColl, status);
+							} else {
+								for (UserMentionEntity userMention : mentionedEntities) {
+									TwitterMongoDBHandler.addToMentionsTable(mentionsColl, status.getId(), status.getUser().getId(), 
+											userMention.getId(), now.getMillis(), status.getCreatedAt().getTime());
+								}
+							}
 						}
 					} catch (MongoException e) {
-						/** Break out as all the tweets older than this should already exists. **/
 						if(e.getCode() == 11000) {
-							return true;
+							// do nothing
 						}
-						else
+						else {
 							logger.error("Mongo Exception: " + e.getMessage());
+						}
 					}
 					
 					// Increase the numberOfTweetsInLast2Weeks counter if the tweet was created in last 2 weeks
@@ -129,8 +148,9 @@ public class UserTimelineFetcher {
 					if(createdAt.after(twoWeeksAgo))
 						numberOfTweetsInLast2Weeks++;
 				}
-				else
+				else {
 					logger.error("Null db object for uid: " + uid);
+				}
 				
 				if(i == statuses.size()-1) {
 					lastLongId = status.getId();
@@ -141,9 +161,13 @@ public class UserTimelineFetcher {
 		return true;
 	}
 
-	private void addUsersToUsersWaitingListCollection(UserMentionEntity[] mentionEntities, DBCollection usersWaitingListColl) {
+	private void addUsersToUsersWaitingListAndMentionsCollection(UserMentionEntity[] mentionEntities, DBCollection usersWaitingListColl, DBCollection mentionsColl, Status status) {
 		for (UserMentionEntity userMention : mentionEntities) {
 			try {
+				// Add to the mentions table
+				TwitterMongoDBHandler.addToMentionsTable(mentionsColl, status.getId(), status.getUser().getId(), 
+						userMention.getId(), new DateTime().getMillis(), status.getCreatedAt().getTime());
+				
 				BasicDBObject userObj = new BasicDBObject(usersWaitingList_SCHEMA.uid.name(), new Long(userMention.getId()).doubleValue());
 				userObj.put(usersWaitingList_SCHEMA.name.name(), userMention.getScreenName());
 				userObj.put(usersWaitingList_SCHEMA.source.name(), USER_SOURCE.Mentions.name());

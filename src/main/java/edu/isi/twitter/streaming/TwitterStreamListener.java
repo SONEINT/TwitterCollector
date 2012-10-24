@@ -2,6 +2,7 @@ package edu.isi.twitter.streaming;
 
 import java.net.UnknownHostException;
 
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,11 +22,13 @@ import com.mongodb.WriteConcern;
 import com.mongodb.util.JSON;
 
 import edu.isi.db.MongoDBHandler;
+import edu.isi.db.TwitterMongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TWEET_SOURCE;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 import edu.isi.db.TwitterMongoDBHandler.USER_SOURCE;
 import edu.isi.db.TwitterMongoDBHandler.tweets_SCHEMA;
 import edu.isi.db.TwitterMongoDBHandler.usersWaitingList_SCHEMA;
+import edu.isi.statistics.StatisticsManager;
 import edu.isi.twitter.AppConfig;
 
 
@@ -34,18 +37,26 @@ public class TwitterStreamListener implements StatusListener {
 	private DB twitterDb;
 	private DBCollection tweetCollection;
 	private DBCollection usersWaitingListColl;
+	private DBCollection tweetsLogColl;
+	private DBCollection replyToColl;
+	private DBCollection mentionsColl;
 	private AppConfig appConfig;
+	private StatisticsManager statsMgr;
 	
 	private static Logger logger = LoggerFactory.getLogger(TwitterStreamListener.class);
 	
-	public TwitterStreamListener(AppConfig appConfig) throws UnknownHostException, MongoException {
+	public TwitterStreamListener(AppConfig appConfig, StatisticsManager statsMgr) throws UnknownHostException, MongoException {
 		this.appConfig = appConfig;
+		this.statsMgr = statsMgr;
 		
 		m = MongoDBHandler.getNewMongoConnection();
 		m.setWriteConcern(WriteConcern.SAFE);
 		twitterDb = m.getDB(this.appConfig.getDBName());
 		tweetCollection = twitterDb.getCollection(TwitterCollections.tweets.name());
 		usersWaitingListColl = twitterDb.getCollection(TwitterCollections.usersWaitingList.name());
+		tweetsLogColl = twitterDb.getCollection(TwitterCollections.tweetsLog.name());
+		replyToColl = twitterDb.getCollection(TwitterCollections.replyToTable.name());
+		mentionsColl = twitterDb.getCollection(TwitterCollections.mentionsTable.name());
 	}
 	
 	public void onStatus(Status status) {
@@ -57,21 +68,41 @@ public class TwitterStreamListener implements StatusListener {
 			dbObject.put(tweets_SCHEMA.APISource.name(), TWEET_SOURCE.Streaming.name());
 			tweetCollection.insert(dbObject);
 			
+			DateTime now = new DateTime();
+			// Add this tweet's information in the tweetsLog collection
+			TwitterMongoDBHandler.addToTweetLogTable(tweetsLogColl, TWEET_SOURCE.Streaming.name(), 
+					status.getId(), now.getMillis(), status.getCreatedAt().getTime());
+			
+			// Add to replyTo table is the tweet was posted in reply to some previous tweet
+			if (status.getInReplyToStatusId() != -1) {
+				TwitterMongoDBHandler.addToReplyToTable(replyToColl, status.getId(), status.getInReplyToStatusId()
+						, status.getUser().getId(), status.getInReplyToUserId(), now.getMillis(), status.getCreatedAt().getTime());
+			}
+			
 			// logger.debug("Received tweet from stream: " + status.getText());
 			/*** Check if any user was mentioned. If yes, then check if his user id needs to saved in the users table ***/
 			UserMentionEntity[] mentionedEntities = status.getUserMentionEntities();
-			if (appConfig.isFollowMentions()) {
-				if(mentionedEntities != null && mentionedEntities.length != 0) {
-					addUsersToUsersWaitingListCollection(mentionedEntities, usersWaitingListColl);
+			if(mentionedEntities != null && mentionedEntities.length != 0) {
+				if (appConfig.isFollowMentions()) {
+					addUsersToUsersWaitingListAndMentionsCollection(mentionedEntities, status);
+				} else {
+					for (UserMentionEntity userMention : mentionedEntities) {
+						TwitterMongoDBHandler.addToMentionsTable(mentionsColl, status.getId(), status.getUser().getId(), 
+								userMention.getId(), now.getMillis(), status.getCreatedAt().getTime());
+					}
 				}
 			}
+			
+			// Increment the counter for streaming in the Statistics Manager
+			statsMgr.incrementStreamingTweetCounter();
 			
 		} catch (MongoException e) {
 			logger.debug("Mongo Exception!", e);
 		}	
     }
 
-    public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
+    
+	public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
         logger.debug("Got a status deletion notice id:" + statusDeletionNotice.getStatusId());
     }
 
@@ -87,9 +118,14 @@ public class TwitterStreamListener implements StatusListener {
     	logger.error("Exception from streaming!", ex);
     }
     
-    private void addUsersToUsersWaitingListCollection(UserMentionEntity[] mentionEntities, DBCollection usersWaitingListColl) {
+    private void addUsersToUsersWaitingListAndMentionsCollection(UserMentionEntity[] mentionEntities, Status status) {
 		for (UserMentionEntity userMention : mentionEntities) {
 			try {
+				// Add to the mentions table
+				TwitterMongoDBHandler.addToMentionsTable(mentionsColl, status.getId(), status.getUser().getId(), 
+						userMention.getId(), new DateTime().getMillis(), status.getCreatedAt().getTime());
+				
+				// Add to the usersWaitingList collection
 				BasicDBObject userObj = new BasicDBObject(usersWaitingList_SCHEMA.uid.name(), new Long(userMention.getId()).doubleValue());
 				userObj.put(usersWaitingList_SCHEMA.name.name(), userMention.getScreenName());
 				userObj.put(usersWaitingList_SCHEMA.source.name(), USER_SOURCE.Mentions.name());
@@ -99,6 +135,8 @@ public class TwitterStreamListener implements StatusListener {
 				userObj.put(usersWaitingList_SCHEMA.parsed.name(), false);
 				
 				usersWaitingListColl.insert(userObj);
+				
+				
 			} catch (MongoException e) {
 				if (e.getCode() == 11000)
 					//logger.debug("Tweet mention user already exists: " + userMention.getName() + ". Error: " + e.getMessage());
@@ -109,5 +147,4 @@ public class TwitterStreamListener implements StatusListener {
 			}
 		}
 	}
-
 }

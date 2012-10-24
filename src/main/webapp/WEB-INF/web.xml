@@ -32,17 +32,44 @@
 		<param-name>DBName</param-name>
 		<param-value>twitter</param-value>
 	</context-param>
-	<listener>
-    	<listener-class>edu.isi.twitter.WebappStartupManager</listener-class>
-	</listener>
+	
+<!-- 	<listener> -->
+<!--     	<listener-class>edu.isi.twitter.WebappStartupManager</listener-class> -->
+<!-- 	</listener> -->
 
 	<servlet>
-		<servlet-name>FollowTwitsServlet</servlet-name>
-		<servlet-class>com.fetch.twitter.FollowTwitsServlet</servlet-class>
-		<load-on-startup>1</load-on-startup>
+		<servlet-name>SetupServlet</servlet-name>
+		<servlet-class>edu.isi.webserver.SetupServlet</servlet-class>
 	</servlet>
 	<servlet-mapping>
-		<servlet-name>FollowTwitsServlet</servlet-name>
-		<url-pattern>/*</url-pattern>
+		<servlet-name>SetupServlet</servlet-name>
+		<url-pattern>/SetupServlet</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+		<servlet-name>AddApplicationServlet</servlet-name>
+		<servlet-class>edu.isi.webserver.AddApplicationServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>AddApplicationServlet</servlet-name>
+		<url-pattern>/AddApplicationServlet</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+		<servlet-name>GetStatisticsServlet</servlet-name>
+		<servlet-class>edu.isi.webserver.GetStatisticsServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>GetStatisticsServlet</servlet-name>
+		<url-pattern>/GetStatisticsServlet</url-pattern>
+	</servlet-mapping>
+	
+	<servlet>
+		<servlet-name>GetAppConfigServlet</servlet-name>
+		<servlet-class>edu.isi.webserver.GetAppConfigServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>GetAppConfigServlet</servlet-name>
+		<url-pattern>/GetAppConfigServlet</url-pattern>
 	</servlet-mapping>
 </web-app>

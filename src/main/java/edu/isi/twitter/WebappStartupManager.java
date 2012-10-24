@@ -5,9 +5,6 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +21,7 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
+import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler;
@@ -32,49 +30,105 @@ import edu.isi.db.TwitterMongoDBHandler.USER_SOURCE;
 import edu.isi.db.TwitterMongoDBHandler.seedUsers_SCHEMA;
 import edu.isi.db.TwitterMongoDBHandler.users_SCHEMA;
 import edu.isi.search.HashTagTweetsFetcherThread;
+import edu.isi.statistics.StatisticsDataCollectionThread;
+import edu.isi.statistics.StatisticsManager;
 import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
 import edu.isi.twitter.rest.UserNetworkFetcherThread;
 import edu.isi.twitter.rest.UserProfileFillerThread;
 import edu.isi.twitter.rest.UserTweetsFetcherThread;
 import edu.isi.twitter.streaming.TwitterStreamManager;
 
-public class WebappStartupManager implements ServletContextListener {
+public class WebappStartupManager {
 
 	private AppConfig appConfig;
+	private StatisticsManager statsMgr = new StatisticsManager();
 	private static Logger logger = LoggerFactory.getLogger(WebappStartupManager.class);
 
 	
-	@Override
-	public void contextInitialized(ServletContextEvent evt) {
-		WebappStartupManager mgr = new WebappStartupManager();
+	public WebappStartupManager(AppConfig appConfig) {
+		this.appConfig = appConfig;
+	}
+	
+	public StatisticsManager getStatisticsManager() {
+		return statsMgr;
+	}
+	
+	public void startApplication() {
 		try {
-			appConfig = new AppConfig(evt.getServletContext());
+//			TwitterMongoDBHandler.createCollectionsAndIndexes(appConfig.getDBName());
+//			initializeUsersCollection();
+//			deployHashTagsTweetsFetcherThreads();
+//			clearOldThreadsFromTable();
+//			
+//			// Start the threads
+//			runTwitterStreamListenerThread();
+//			runUserProfileFillerThread();
+//			runUserNetworkFetcherThread();
+//			runTwitterTimeLineFetcher();
 			
-			TwitterMongoDBHandler.createCollectionsAndIndexes(appConfig.getDBName());
-			mgr.initializeUsersCollection();
-			mgr.deployHashTagsTweetsFetcherThreads();
-			mgr.clearOldThreadsFromTable();
+			runFakeDataCollectionThread();
 			
-			mgr.runTwitterStreamListenerThread();
-			mgr.runUserProfileFillerThread();
-			mgr.runUserNetworkFetcherThread();
-			mgr.runTwitterTimeLineFetcher();
+			runStatisticsCollectionThread();
+			
+
+			
 		} catch (IOException e) {
 			logger.error("Error setting up the config!", e);
 		} catch (IllegalArgumentException e) {
 			logger.error("Illegal argument specified in web.xml. Error setting up the config!", e);
 		} catch (MongoException e) {
 			logger.error("Mongo exception while setting up the application!", e);
-		} catch (InterruptedException e) {
-			logger.error("Thread interrupted abruptly while setting up the application!", e);
+//		} catch (InterruptedException e) {
+//			logger.error("Thread interrupted abruptly while setting up the application!", e);
 		}
 		logger.info(appConfig.toString());
 	}
 
+	private void runFakeDataCollectionThread() throws UnknownHostException, MongoException {
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				Mongo m = null;
+				try {
+					m = MongoDBHandler.getNewMongoConnection();
+					m.setWriteConcern(WriteConcern.SAFE);
+				} catch (UnknownHostException e) {
+					logger.error("UnknownHostException", e);
+				} catch (MongoException e) {
+					logger.error("MongoException", e);
+				}
+				if(m == null) {
+					logger.error("Error getting connection to MongoDB! Cannot proceed with this thread.");
+					return;
+				}
+				
+				DB twitterDb = m.getDB(appConfig.getDBName());
+				DBCollection tweets = twitterDb.getCollection(TwitterCollections.tweets.name());
+				DBCollection links = twitterDb.getCollection(TwitterCollections.usersGraph.name());
+				
+				while (true) {
+					tweets.insert(new BasicDBObject("test", "test"));
+					links.insert(new BasicDBObject("test", "test"));
+					try {
+						TimeUnit.SECONDS.sleep(1);
+					} catch (InterruptedException e) {
+						
+					}
+				}
+			}
+		}).start();
+		
+	}
+
+	private void runStatisticsCollectionThread() {
+		Thread t = new Thread (new StatisticsDataCollectionThread(appConfig));
+		t.start();
+	}
+
 	public static void main(String[] args) {
 		try {
-			WebappStartupManager mgr = new WebappStartupManager();
-			mgr.setConfig(AppConfig.getTestConfig());
+			WebappStartupManager mgr = new WebappStartupManager(AppConfig.getTestConfig());
 			mgr.initializeUsersCollection();
 			//mgr.deployHashTagsTweetsFetcherThreads();
 		} catch (UnknownHostException e) {
@@ -164,24 +218,26 @@ public class WebappStartupManager implements ServletContextListener {
 
 	private void runTwitterStreamListenerThread() {
 		logger.info("Starting Twitter stream listener threads...");
-		Thread strMgrThread = new Thread(new TwitterStreamManager(appConfig));
+		Thread strMgrThread = new Thread(new TwitterStreamManager(appConfig, statsMgr));
 		strMgrThread.start();
 	}
 	
 	private void runUserProfileFillerThread() {
 		logger.info("Starting User profile lokup thread...");
-		Thread t = new Thread(new UserProfileFillerThread(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup, appConfig.getDBName()), appConfig));
+		Thread t = new Thread(new UserProfileFillerThread(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup
+				, appConfig.getDBName()), appConfig));
 		t.start();
 	}
 	
 	private void runUserNetworkFetcherThread() {
 		logger.info("Starting user network fetcher threads...");
-		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserNetworkGraphFetcher, appConfig.getDBName());
+		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserNetworkGraphFetcher
+				, appConfig.getDBName());
 		
 		// Start a new thread for each application
 		for(int i=0; i<allConfigs.size(); i++) {
 			ConfigurationBuilder cfg = allConfigs.get(i);
-			Thread t = new Thread(new UserNetworkFetcherThread(cfg, i+1, appConfig));
+			Thread t = new Thread(new UserNetworkFetcherThread(cfg, i+1, appConfig, statsMgr));
 			t.start();
 			try {
 				Thread.sleep(TimeUnit.SECONDS.toMillis(5));
@@ -193,12 +249,13 @@ public class WebappStartupManager implements ServletContextListener {
 	
 	private void runTwitterTimeLineFetcher() {
 		logger.info("Starting user tweet fetcher threads...");
-		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserTimelineFetcher, appConfig.getDBName());
+		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserTimelineFetcher
+				, appConfig.getDBName());
 		
 		// Start a new thread for each application
 		for(int i=0; i<allConfigs.size(); i++) {
 			ConfigurationBuilder cfg = allConfigs.get(i);
-			Thread t = new Thread(new UserTweetsFetcherThread(cfg, i+1, appConfig));
+			Thread t = new Thread(new UserTweetsFetcherThread(cfg, i+1, appConfig, statsMgr));
 			t.start();
 			try {
 				Thread.sleep(TimeUnit.SECONDS.toMillis(5));
@@ -214,12 +271,13 @@ public class WebappStartupManager implements ServletContextListener {
 			return;
 		
 		logger.info("Starting hash tags tweet fetcher threads...");
-		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.Search, appConfig.getDBName());
+		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.Search
+				, appConfig.getDBName());
 		
 		// Start a new thread for each application
 		for(int i=0; i<allConfigs.size(); i++) {
 			ConfigurationBuilder cfg = allConfigs.get(i);
-			Thread t = new Thread(new HashTagTweetsFetcherThread(cfg, i+1, appConfig));
+			Thread t = new Thread(new HashTagTweetsFetcherThread(cfg, i+1, appConfig, statsMgr));
 			t.start();
 			Thread.sleep(TimeUnit.SECONDS.toMillis(5));
 		}
@@ -244,7 +302,4 @@ public class WebappStartupManager implements ServletContextListener {
 			e.printStackTrace();
 		}
 	}
-
-	@Override
-	public void contextDestroyed(ServletContextEvent arg0) {}
 }

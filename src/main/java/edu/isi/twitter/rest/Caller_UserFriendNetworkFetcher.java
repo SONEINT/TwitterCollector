@@ -8,7 +8,7 @@ import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
 
-public class UserFriendNetworkFetcherCaller {
+public class Caller_UserFriendNetworkFetcher {
 
 	/**
 	 * @param args

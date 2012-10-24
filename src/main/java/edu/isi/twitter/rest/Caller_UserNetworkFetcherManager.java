@@ -20,7 +20,7 @@ import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 import edu.isi.twitter.TwitterApplicationManager;
 import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
 
-public class UserNetworkFetcherManager {
+public class Caller_UserNetworkFetcherManager {
 	
 	private static Logger logger = LoggerFactory.getLogger(UserNetworkFetcher.class);
 	

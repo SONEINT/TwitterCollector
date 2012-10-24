@@ -27,6 +27,7 @@ import edu.isi.db.TwitterMongoDBHandler.THREAD_TYPE;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 import edu.isi.db.TwitterMongoDBHandler.currentThreads_SCHEMA;
 import edu.isi.db.TwitterMongoDBHandler.users_SCHEMA;
+import edu.isi.statistics.StatisticsManager;
 import edu.isi.twitter.AppConfig;
 
 public class UserNetworkFetcherThread implements Runnable {
@@ -36,11 +37,13 @@ public class UserNetworkFetcherThread implements Runnable {
 	private Logger logger = LoggerFactory.getLogger(UserNetworkFetcherThread.class);
 	private static int USER_LIST_COUNT = 50;
 	private AppConfig appConfig;
+	private StatisticsManager statsMgr;
 	
-	public UserNetworkFetcherThread(ConfigurationBuilder cb, int index, AppConfig appConfig) {
+	public UserNetworkFetcherThread(ConfigurationBuilder cb, int index, AppConfig appConfig, StatisticsManager statsMgr) {
 		this.cb = cb;
 		this.threadName = THREAD_TYPE.NetworkFetcher.name() + index;
 		this.appConfig = appConfig;
+		this.statsMgr = statsMgr;
 	}
 	
 	public void run() {
@@ -146,6 +149,9 @@ public class UserNetworkFetcherThread implements Runnable {
 			if (success) {
 				usr.put("onceDone", true); // for debugging purposes
 				usr.put(users_SCHEMA.followerCount.name(), f.getFollowerCount());
+				
+				// Add to the stats
+				statsMgr.addGraphLiskUserTraversed(uid);
 			} else {
 				usr.put(users_SCHEMA.graphFetcherProblem.name(), true);
 			}

@@ -3,6 +3,7 @@ package edu.isi.search;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +12,7 @@ import twitter4j.QueryResult;
 import twitter4j.Tweet;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
+import twitter4j.UserMentionEntity;
 import twitter4j.json.DataObjectFactory;
 
 import com.mongodb.DBCollection;
@@ -18,8 +20,10 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.util.JSON;
 
+import edu.isi.db.TwitterMongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TWEET_SOURCE;
 import edu.isi.db.TwitterMongoDBHandler.tweets_SCHEMA;
+import edu.isi.statistics.StatisticsManager;
 
 public class SearchAPITweetsFetcher {
 	
@@ -40,7 +44,9 @@ public class SearchAPITweetsFetcher {
 		this.queryType = queryType;
 	}
 
-	public boolean fetchAndStoreInDB(DBCollection tweetsCollection, DBCollection currentThreadsColl, DBObject threadObj) {
+	public boolean fetchAndStoreInDB(DBCollection tweetsCollection, DBCollection currentThreadsColl, 
+			DBObject threadObj, DBCollection tweetsLogColl, DBCollection replyToColl, DBCollection mentionsColl, 
+			DBCollection hashtagTweetsColl, StatisticsManager statsMgr) {
         Query query = new Query(getNormalizedQueryString());
         query.setRpp(RESULTS_PER_PAGE);
         long maxId = 0l;
@@ -98,20 +104,44 @@ public class SearchAPITweetsFetcher {
 						dbObject.put(tweets_SCHEMA.tweetCreatedAt.name(), tweet.getCreatedAt());
 						dbObject.put(tweets_SCHEMA.APISource.name(), TWEET_SOURCE.Search.name());
 						tweetsCollection.insert(dbObject);
-//    						UserMentionEntity[] mentionEntities = tweet.getUserMentionEntities();
-//
-//    						if(mentionEntities != null)
-//    							addToUsersCollection(mentionEntities, userColl, usersFromTweetMentionsColl);
+
+						DateTime now = new DateTime();
+						// Add this tweet's information in the tweetsLog collection
+						TwitterMongoDBHandler.addToTweetLogTable(tweetsLogColl, TWEET_SOURCE.Search.name(), 
+								tweet.getId(), now.getMillis(), tweet.getCreatedAt().getTime());
+						
+						// Add to replyTo table is the tweet was posted in reply to some previous tweet
+						if (tweet.getInReplyToStatusId() != -1) {
+							TwitterMongoDBHandler.addToReplyToTable(replyToColl, tweet.getId(), tweet.getInReplyToStatusId()
+									, tweet.getFromUserId(), tweet.getToUserId(), now.getMillis(), tweet.getCreatedAt().getTime());
+						}
+						
+						// Add to userWaitingList collection if required
+						UserMentionEntity[] mentionedEntities = tweet.getUserMentionEntities();
+						if (mentionedEntities != null && mentionedEntities.length != 0) {
+							for (UserMentionEntity userMention : mentionedEntities) {
+								TwitterMongoDBHandler.addToMentionsTable(mentionsColl, tweet.getId(), tweet.getFromUserId(), 
+										userMention.getId(), now.getMillis(), tweet.getCreatedAt().getTime());
+							}
+						}
+						
+						// Add to hashtagtweets table if the sesrch entity is a hashtag
+						if (queryType == QUERY_TYPE.hashTag) {
+							TwitterMongoDBHandler.addTohashTagTweetsTable(hashtagTweetsColl, queryString, tweet.getId(), 
+									tweet.getFromUserId(), now.getMillis(), tweet.getCreatedAt().getTime());
+						}
+						
+						// Increment the tweet counter for it in the Statistics Manager
+						statsMgr.incrementTweetCounterForHashtag(queryString);
 					} catch (MongoException e) {
 						logger.error(e.getMessage());
-						/** Break out as all the tweets older than this should already exists. **/
 						if(e.getCode() == 11000) {
-//							logger.info("Total tweets: " + tweetCounter);
+							// Do nothing
 //							logger.info("Tweet already exists!");
-							return true;
 						}
-						else
+						else {
 							logger.error("Mongo Exception: " + e.getMessage());
+						}
 					}
 				}
             	

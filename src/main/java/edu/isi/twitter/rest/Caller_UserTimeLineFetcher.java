@@ -17,7 +17,7 @@ import com.mongodb.WriteConcern;
 import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler.TwitterCollections;
 
-public class UserTimeLineFetcherCaller {
+public class Caller_UserTimeLineFetcher {
 	
 	public static String ACCESS_TOKEN = "750028153-PWyGgHuXrqvKl7eOc0UkKd6aeYDvKMmgqm6g2J2s";
 	public static String ACCESS_TOKEN_SECRET = "uEjZ8MS4jju35hdMiR5125rYrGcwMFrbwLtP3j8b7Bg";
@@ -48,13 +48,16 @@ public class UserTimeLineFetcherCaller {
 			DBCollection tweetsColl = twitterDb.getCollection("tweetsTest");
 			DBCollection usersWaitingListColl = twitterDb.getCollection(TwitterCollections.usersWaitingList.name());
 			DBCollection currentThreadsColl = twitterDb.getCollection(TwitterCollections.currentThreads.name());
+			DBCollection tweetsLogColl = twitterDb.getCollection(TwitterCollections.tweetsLog.name());
+			DBCollection replyToColl = twitterDb.getCollection(TwitterCollections.replyToTable.name());
+			DBCollection mentionsColl = twitterDb.getCollection(TwitterCollections.mentionsTable.name());
 			
 			DBObject threadObj = new BasicDBObject("type", "TweetFetcher").append("name", "testThread");
 			currentThreadsColl.save(threadObj);
 			
 			System.out.println("Starting now...");
 			UserTimelineFetcher f = new UserTimelineFetcher(40885516, authenticatedTwitter, false);
-        	f.fetchAndStoreInDB(tweetsColl, usersColl, usersWaitingListColl, currentThreadsColl, threadObj, false);
+        	f.fetchAndStoreInDB(tweetsColl, usersColl, usersWaitingListColl, currentThreadsColl, threadObj, tweetsLogColl, replyToColl, mentionsColl);
 			
 			// Testing updating of fields
 //			DBCollection apps = db.getCollection("applications");

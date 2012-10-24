@@ -46,6 +46,7 @@ public class AppConfig {
 	public AppConfig() {
 	}
 
+	
 	public int getFriendGraphDepth() {
 		return friendGraphDepth;
 	}
