@@ -60,6 +60,29 @@ public class TwitterApplicationManager {
 			return configs.get(0);
 	}
 	
+	public static ConfigurationBuilder getOneConfigurationBuilderByAppName(String appName, String dBName) {
+		Mongo m = null;
+		try {
+			m = MongoDBHandler.getNewMongoConnection();
+			DB twitterDb = m.getDB(dBName);
+			DBCollection appsColl = twitterDb.getCollection(TwitterCollections.applications.name());
+			
+			DBObject appObj = appsColl.findOne(new BasicDBObject(applications_SCHEMA.user_id.name(), appName));
+			if (appObj == null)
+				return null;
+			else 
+				return buildConfigurationBuilder(appObj); 
+			
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (MongoException e) {
+			e.printStackTrace();
+		} finally {
+			m.close();
+		}
+		return null;
+	}
+	
 	public static List<ConfigurationBuilder> getAllConfigurationBuildersByTag(ApplicationTag tag, String dBName) {
 		List<ConfigurationBuilder> appConfigs = new ArrayList<ConfigurationBuilder>();
 		Mongo m = null;

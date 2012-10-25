@@ -34,26 +34,33 @@ public class UserTimelineFetcher {
 	private long uid;
 	private Twitter authenticatedTwitter;
 	private boolean followMentions;
+	private long timelineTweetMaxId;
 	
 	private static Logger logger = LoggerFactory.getLogger(UserTimelineFetcher.class);
 	private static int TWEETS_FREQUENCY_CALCULATION_DURATION_DAYS = 14;
 	private int numberOfTweetsInLast2Weeks = 0;
 	
-	public UserTimelineFetcher(long uid, Twitter authenticatedTwitter, boolean followMentions) {
+	public UserTimelineFetcher(long uid, Twitter authenticatedTwitter, boolean followMentions, long timelineTweetMaxId) {
 		this.uid = uid;
 		this.authenticatedTwitter = authenticatedTwitter;
 		this.followMentions = followMentions;
+		this.timelineTweetMaxId = timelineTweetMaxId;
 	}
 	
 	public int getNumberOfTweetsInLast2Weeks() {
 		return numberOfTweetsInLast2Weeks;
 	}
+	
+	public long getTimelineTweetMaxId() {
+		return timelineTweetMaxId;
+	}
 
-	public boolean fetchAndStoreInDB(DBCollection tweetsCollection, DBCollection userColl, 
-			DBCollection usersWaitingListColl, DBCollection currentThreadsColl, DBObject threadObj, 
-			DBCollection tweetsLogColl, DBCollection replyToColl, DBCollection mentionsColl) {
+	public boolean fetchAndStoreInDB(DBCollection tweetsCollection, DBCollection usersWaitingListColl, 
+			DBCollection currentThreadsColl, DBObject threadObj, DBCollection tweetsLogColl, 
+			DBCollection replyToColl, DBCollection mentionsColl) {
 		
 		Paging paging = new Paging(1, PAGING_SIZE);
+		long iterationsMaxTweetId = 0l;
 
 		// 2 week's before time
 		Calendar date = Calendar.getInstance();
@@ -61,6 +68,7 @@ public class UserTimelineFetcher {
 		Date twoWeeksAgo = date.getTime();
 		
 		while (true) {
+			System.out.println("Paging: " + paging.getMaxId());
 			ResponseList<Status> statuses = null;
 			try {
 				statuses = authenticatedTwitter.getUserTimeline(uid, paging);
@@ -101,6 +109,8 @@ public class UserTimelineFetcher {
 			long lastLongId = 0L; 
 			for (int i=0; i<statuses.size(); i++) {
 				Status status = statuses.get(i);
+				if (status.getId() > iterationsMaxTweetId)
+					iterationsMaxTweetId = status.getId();
 				
 				/*** Store the tweet into the database ***/
 				String json = DataObjectFactory.getRawJSON(status);
@@ -136,6 +146,12 @@ public class UserTimelineFetcher {
 						}
 					} catch (MongoException e) {
 						if(e.getCode() == 11000) {
+//							System.out.println("YES THIS IS HAPPENING!!!");
+							if (timelineTweetMaxId >= status.getId()) {
+								System.out.println("**************** WORKING **************");
+								timelineTweetMaxId = iterationsMaxTweetId;
+								return true;
+							}
 							// do nothing
 						}
 						else {
@@ -158,6 +174,7 @@ public class UserTimelineFetcher {
 				}
 			}
 		}
+		timelineTweetMaxId = iterationsMaxTweetId;
 		return true;
 	}
 

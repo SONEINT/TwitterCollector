@@ -157,8 +157,17 @@ public class UserTweetsFetcherThread implements Runnable {
         	
         	/** Fetch the user's timeline **/
         	logger.info("Fetching tweets for userid:" + uid);
-        	UserTimelineFetcher f = new UserTimelineFetcher(uid, authenticatedTwitter, appConfig.isFollowMentions());
-        	boolean success = f.fetchAndStoreInDB(tweetsColl, usersColl, usersWaitingListColl, currentThreadsColl, 
+        	long timelineTweetMaxId = 0l;
+        	if (usr.containsField(users_SCHEMA.timelineTweetsMaxId.name())) {
+        		try {
+        			timelineTweetMaxId = Long.parseLong(usr.get(users_SCHEMA.timelineTweetsMaxId.name()).toString());
+        		} catch (Exception t) {
+        			// Do nothing if there is an exception while parsing the field's data
+        		}
+        	}
+        	
+        	UserTimelineFetcher f = new UserTimelineFetcher(uid, authenticatedTwitter, appConfig.isFollowMentions(), timelineTweetMaxId);
+        	boolean success = f.fetchAndStoreInDB(tweetsColl, usersWaitingListColl, currentThreadsColl, 
         			threadObj, tweetsLogColl, replyToColl, mentionsColl);
         	if (success) {
         		try {
@@ -168,6 +177,7 @@ public class UserTweetsFetcherThread implements Runnable {
         			DateTime dateToBeUpdated = new DateTime(new DateTime().getMillis() + nextUpdateDuration);
         			usr.put(users_SCHEMA.nextUpdateTweetFetcherDate.name(), dateToBeUpdated.getMillis());
         			usr.put(users_SCHEMA.tweetsPerDay.name(), getUsersActivityRate(f.getNumberOfTweetsInLast2Weeks()));
+        			usr.put(users_SCHEMA.timelineTweetsMaxId.name(), f.getTimelineTweetMaxId());
         			
         	        usr.put("onceDone", true); // for debugging purposes
             		usersColl.save(usr);

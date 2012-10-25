@@ -42,7 +42,7 @@ public class TwitterMongoDBHandler {
 		// Related to user's information
 		uid, name, location, timezone, passedGeospatialFilter, iteration, source,
 		// Related to tweet fetcher threads
-		lastUpdatedTweetFetcher, nextUpdateTweetFetcherDate, tweetFetcherProblem, tweetsPerDay, followMentions,
+		lastUpdatedTweetFetcher, nextUpdateTweetFetcherDate, tweetFetcherProblem, tweetsPerDay, followMentions, timelineTweetsMaxId,
 		// Related to user graph threads
 		graphIterationCounter, friendDepth, followerDepth, graphFetcherProblem, followerCount
 	}

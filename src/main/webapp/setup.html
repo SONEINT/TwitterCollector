@@ -32,6 +32,7 @@
 		$(document).ready(function() {
 			$.getJSON("GetAppConfigServlet", function(json) {
 				if (json["appRunning"]) {
+					// Store the DB name so that it could be used later also
 					$("form#setupForm").hide();
 					$("td#DBName").text(json["DBName"]);
 					$("td#friendGraphDepth").text(json["friendGraphDepth"]);
@@ -51,27 +52,40 @@
 					
 				}
 			});
-			
-			$("button#appSubmitButton").click(function() {
-				// $.post("SetupServlet", );
-				
-				// $.ajax({
-				  // url:SetupServlet,
-				  // type:"POST",
-				  // data:$("#setupForm").serialize(),
-				  // contentType:"multipart/form-data",
-				  // success: function(){
-				    // console.log("WORKING!");
-				  // }
-				// })
-
-			});
 		});
 		function closeDialog () {
 			$('#addAppWindow').modal('hide');
 		};
-		function okClicked () {
+		
+		function checkForm() {
+			$("div.control-group").removeClass('error');
+			$("span.help-inline").remove();
+			var intRegex = /^\d+$/;
+			if ($.trim($("input#inputDatabase").val()) == "") {
+				$("input#inputDatabase").parents(".control-group").addClass('error')
+					.children(".controls").append($("<span>").addClass("help-inline").text("Please provide a value!"));
+				return false;
+			}
 			
+			if ($.trim($("input#inputFriendDepth").val()) == "" || !isNumber($("input#inputFriendDepth").val())) {
+				$("input#inputFriendDepth").parents(".control-group").addClass('error')
+					.children(".controls").append($("<span>").addClass("help-inline").text("Please provide a numeric value!"));;
+				return false;
+			}
+			
+			if ($.trim($("input#inputFollowerDepth").val()) == "" || !isNumber($("input#inputFollowerDepth").val())) {
+				$("input#inputFollowerDepth").parents(".control-group").addClass('error')
+					.children(".controls").append($("<span>").addClass("help-inline").text("Please provide a numeric value!"));;
+				return false;
+			}
+			return true;
+		}
+		
+		function isNumber(n) {
+		  return !isNaN(parseFloat(n)) && isFinite(n);
+		}
+		
+		function okClicked () {
 			var options = new Object();
 			options["DBName"] = $("input#inputDatabase").val();
 			options["user_id"] = $("#inputAppName").val();
@@ -83,10 +97,16 @@
 			
 			// Simple form validation
 			if (options["DBName"] == "") {
-				alert ("Please provide DB name before submitting application information.");
-				closeDialog();
-				return;
+				var dbVal = $("td#DBName").text(); // If the config has been submitted
+				if (dbVal == null || dbVal == "") {
+					alert ("Please provide DB name before submitting application information.");
+					closeDialog();
+					return;
+				} else {
+					options["DBName"] = dbVal;
+				}
 			}
+			
 			if (options["user_id"] == "" || options["consumer_key"] == "" || 
 				options["consumer_key_secret"] == "" || options["access_token"] == "" || 
 				options["access_token_secret"] == "") {
@@ -138,17 +158,17 @@
 				)
 			)
 			
-			// var returned = $.ajax({
-			   	// url: "AddApplicationServlet", 
-			   	// type: "POST",
-			   	// data : options,
-			   	// dataType : "json",
-			   	// complete : 
-			   		// function (xhr, textStatus) {
-			   			// var json = $.parseJSON(xhr.responseText);
-			   			// console.log(json["status"]);
-				   	// }
-			// });	
+			var returned = $.ajax({
+			   	url: "AddApplicationServlet", 
+			   	type: "POST",
+			   	data : options,
+			   	dataType : "json",
+			   	complete : 
+			   		function (xhr, textStatus) {
+			   			var json = $.parseJSON(xhr.responseText);
+			   			alert(json["status"]);
+				   	}
+			});	
 			
 			// Clear all value
 			$("#addAppWindow input").val("");
@@ -190,7 +210,7 @@
 			<tbody>
 				<tr>
 					<td class="rowHeader">Database Name</td>
-					<td id="DBName" class="rowValue">No data available</td>
+					<td id="DBName" class="rowValue"></td>
 				</tr>
 				<tr>
 					<td class="rowHeader">Friend Graph Depth</td>
@@ -240,10 +260,14 @@
 				</tr>
 			</tbody>
 		</table>
+					
+		<div class="divButton">
+			<a data-toggle="modal" href="#addAppWindow" class="btn">Add more Twitter application</a>
+		</div><br />
 	</div>
 	
 
-	<form class="form-horizontal" id="setupForm" action="SetupServlet" method="POST" enctype="multipart/form-data">
+	<form class="form-horizontal" id="setupForm" action="SetupServlet" method="POST" enctype="multipart/form-data" onsubmit="return checkForm()">
 	  <div class="control-group">
 	    <label class="control-label" for="inputDatabase">Database Name</label>
 	    <div class="controls">
@@ -374,11 +398,11 @@
 			    	<label class="control-label" for="inputTwitterAPI">Twitter API*</label>
 			    	<div class="controls">
 			      		<select id="inputTwitterAPI">
-						  <option value="Timeline">Timeline</option>
+						  <option value="UserTimelineFetcher">Timeline</option>
 						  <option value="Streaming">Streaming</option>
 						  <option value="Search">Search</option>
-						  <option value="Graph">Graph</option>
-						  <option value="User Profile Lookup">User Profile Lookup</option>
+						  <option value="UserNetworkGraphFetcher">Graph</option>
+						  <option value="UserProfileLookup">User Profile Lookup</option>
 						</select>
 			    	</div>
 			  	</div>

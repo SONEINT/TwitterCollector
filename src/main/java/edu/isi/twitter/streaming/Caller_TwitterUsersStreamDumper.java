@@ -2,12 +2,12 @@ package edu.isi.twitter.streaming;
 
 import twitter4j.conf.ConfigurationBuilder;
 
-public class TwitterUsersStreamDumper implements Runnable {
+public class Caller_TwitterUsersStreamDumper implements Runnable {
 	ConfigurationBuilder cb;
 	
 	// private static Logger logger = LoggerFactory.getLogger(TwitterUsersStreamDumper.class);
 	
-	public TwitterUsersStreamDumper (ConfigurationBuilder cb) {
+	public Caller_TwitterUsersStreamDumper (ConfigurationBuilder cb) {
 		this.cb = cb;
 	}
 
