@@ -236,7 +236,7 @@ public class TwitterMongoDBHandler {
 		usersColl.ensureIndex(new BasicDBObject(users_SCHEMA.uid.name(), 1), uniqueIndexOption);
 		usersWaitingListColl.ensureIndex(new BasicDBObject(usersWaitingList_SCHEMA.uid.name(), 1), uniqueIndexOption);
 		tweetsColl.ensureIndex(new BasicDBObject(tweets_SCHEMA.id.name(), 1), uniqueIndexOption);
-		tweetsColl.ensureIndex(new BasicDBObject("user.id", 1), uniqueIndexOption);
+		tweetsColl.ensureIndex(new BasicDBObject("user.id", 1));
 		usersGraphColl.ensureIndex(new BasicDBObject(usersGraph_SCHEMA.uid.name(), 1));
 		usersGraphActionListColl.ensureIndex(new BasicDBObject(usersGraphActionList_SCHEMA.uid.name(), 1));
 		applicationsColl.ensureIndex(new BasicDBObject(applications_SCHEMA.user_id.name(), 1), uniqueIndexOption);

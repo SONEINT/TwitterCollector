@@ -1,257 +1,264 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Twitter Application</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="">
-    <meta name="author" content="">
+	<head>
+		<meta charset="utf-8">
+		<title>Twitter Application</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="description" content="">
+		<meta name="author" content="">
 
-    <!-- Le styles -->
-    <link href="css/bootstrap.css" rel="stylesheet">
-    <style>
-      body {
-        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
-      }
-    </style>
-    
-    <link href="css/bootstrap-responsive.css" rel="stylesheet">
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/jasny-bootstrap.css" rel="stylesheet">
-    <link href="css/app.css" rel="stylesheet">
+		<!-- Le styles -->
+		<link href="css/bootstrap.css" rel="stylesheet">
+		<style>
+			body {
+				padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+			}
+		</style>
 
-    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <script src="js/jquery-1.8.2.min.js"></script>
-    <script src="js/bootstrap-fileupload.js"></script>
-    <script src="js/jasny-bootstrap.min.js"></script>
-    <script src="js/bootstrap.js"></script>
-    
-	<!-- Charting library -->
-    <script src="http://code.highcharts.com/highcharts.js"></script>
-    <script src="js/chartsTheme.js"></script>
-	<script src="http://code.highcharts.com/modules/exporting.js"></script>
-    
-    <script>
-		    
-		    $(document).ready(function() {
-		    	$.getJSON("GetStatisticsServlet", function(json) {
-		    		if (json["tweetsStatus"] == "success") {
-		   				var chart = new Highcharts.Chart({
-					        chart: {
-					            renderTo: 'tweetsLineChart',
-					            zoomType: 'x'
-					        },
-					        xAxis: {
-					            type: 'datetime'
-					        },
-					        yAxis: {
-				                title: {
-				                    text: '# Tweets'
-				                },
-				                plotLines: [{
-				                    value: 0,
-				                    width: 1,
-				                    color: '#808080'
-				                }]
-				            },
-					        title: {
-				                text: 'Number of Tweets',
-				                x: -20 //center
-				            },
-					        plotOptions: {
-					            series: {
-					                pointStart: json["tweetStartTime"],
-					                pointInterval: 15 * 60 * 1000 // 15 minutes
-					            }
-					        },
-					        
-					        series: [{
-					        	name: "Tweets",
-					        	data: json["tweetData"]
-					        }]
-					    });
-					    var highchartsOptions = Highcharts.setOptions(Highcharts.theme);
-		   			} else {
-		   				
-		   			}
-		   			
-		   			if (json["linksStatus"] == "success") {
-		   				var chart = new Highcharts.Chart({
-					        chart: {
-					            renderTo: 'linksLineChart',
-					            zoomType: 'x'
-					        },
-					        xAxis: {
-					            type: 'datetime'
-					        },
-					        yAxis: {
-				                title: {
-				                    text: '# Graph Links'
-				                },
-				                plotLines: [{
-				                    value: 0,
-				                    width: 1,
-				                    color: '#808080'
-				                }]
-				            },
-					        title: {
-				                text: 'Number of Links',
-				                x: -20 //center
-				            },
-					        plotOptions: {
-					            series: {
-					                pointStart: json["linksStartTime"],
-					                pointInterval: 15 * 60 * 1000 // 15 minutes
-					            }
-					        },
-					        
-					        series: [{
-					        	name: "Links",
-					        	data: json["linksData"]
-					        }]
-					    });
-					    var highchartsOptions = Highcharts.setOptions(Highcharts.theme);
-		   			} else {
-		   				
-		   			}
-		   			
-		   			if (json["statsMgrStatus"] == "success") {
-		   				$("span#appStartTime").text(json["appStartTime"]);
-		   				
-		   				$("td#timelineUsersTraversedCount").text(json["timelineUsersTraversedCount"]);
-		   				$("td#timelineUsersPendingCount").text(json["timelineUsersPendingCount"]);
-		   				
-		   				$("td#linksUsersTraversedCount").text(json["linksUsersTraversedCount"]);
-		   				$("td#linksUsersPendingCount").text(json["linksUsersPendingCount"]);
-		   				
-		   				$("td#searchHashtagsTraversedCount").text(json["searchHashtagsTraversedCount"]);
-		   				$("td#searchHashtagsPendingCount").text(json["searchHashtagsPendingCount"]);
-		   				
-		   				$("td#streamingUsersTraversedCount").text(json["streamingUsersTraversedCount"]);
-		   				$("td#streamingTweetsCount").text(json["streamingTweetsCount"]);
-		   				
-		   			} else {
-		   				
-		   			}
-    			});
-		    });
-	</script>
+		<link href="css/bootstrap-responsive.css" rel="stylesheet">
+		<link href="css/bootstrap.min.css" rel="stylesheet">
+		<link href="css/jasny-bootstrap.css" rel="stylesheet">
+		<link href="css/app.css" rel="stylesheet">
 
-  </head>
+		<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+		<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+		<![endif]-->
+		<script src="js/jquery-1.8.2.min.js"></script>
+		<script src="js/bootstrap-fileupload.js"></script>
+		<script src="js/jasny-bootstrap.min.js"></script>
+		<script src="js/bootstrap.js"></script>
 
-  <body>
-    <div class="navbar navbar-inverse navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="#">Twitter Data Fetcher App</a>
-          <div class="nav-collapse collapse">
-            <ul class="nav">
-              <li><a href="setup.html">Setup</a></li>
-              <li class="active"><a href="statistics.html">Statistics</a></li>
-              <li><a href="#contact">Contact</a></li>
-            </ul>
-          </div><!--/.nav-collapse -->
-        </div>
-      </div>
-    </div>
+		<!-- Charting library -->
+		<script src="http://code.highcharts.com/highcharts.js"></script>
+		<script src="js/chartsTheme.js"></script>
+		<script src="http://code.highcharts.com/modules/exporting.js"></script>
 
-    <div class="container" id="statsContainer">
-    	<p id="uptimeBanner" class="lead">
-    		Application up since: 
-    		<span id="appStartTime">App not running</span>
-    	</p>
-		<legend>Data Collection Statistics</legend>
-		<div id="mainStats" class="row">
-<!--     		<h3>Main Statistics</h3><br /> -->
+		<script>
+			$(document).ready(function() {
+				$.getJSON("GetStatisticsServlet", function(json) {
+					if (json["tweetsStatus"] == "success") {
+						var chart = new Highcharts.Chart({
+							chart : {
+								renderTo : 'tweetsLineChart',
+								zoomType : 'x'
+							},
+							xAxis : {
+								type : 'datetime'
+							},
+							yAxis : {
+								title : {
+									text : '# Tweets'
+								},
+								plotLines : [{
+									value : 0,
+									width : 1,
+									color : '#808080'
+								}]
+							},
+							title : {
+								text : 'Number of Tweets',
+								x : -20 //center
+							},
+							plotOptions : {
+								series : {
+									pointStart : json["tweetStartTime"],
+									pointInterval : 15 * 60 * 1000 // 15 minutes
+								}
+							},
+
+							series : [{
+								name : "Tweets",
+								data : json["tweetData"]
+							}]
+						});
+						var highchartsOptions = Highcharts.setOptions(Highcharts.theme);
+					} else {
+
+					}
+
+					if (json["linksStatus"] == "success") {
+						var chart = new Highcharts.Chart({
+							chart : {
+								renderTo : 'linksLineChart',
+								zoomType : 'x'
+							},
+							xAxis : {
+								type : 'datetime'
+							},
+							yAxis : {
+								title : {
+									text : '# Graph Links'
+								},
+								plotLines : [{
+									value : 0,
+									width : 1,
+									color : '#808080'
+								}]
+							},
+							title : {
+								text : 'Number of Links',
+								x : -20 //center
+							},
+							plotOptions : {
+								series : {
+									pointStart : json["linksStartTime"],
+									pointInterval : 15 * 60 * 1000 // 15 minutes
+								}
+							},
+
+							series : [{
+								name : "Links",
+								data : json["linksData"]
+							}]
+						});
+						var highchartsOptions = Highcharts.setOptions(Highcharts.theme);
+					} else {
+
+					}
+
+					if (json["statsMgrStatus"] == "success") {
+						$("span#appStartTime").text(json["appStartTime"]);
+
+						$("td#timelineUsersTraversedCount").text(json["timelineUsersTraversedCount"]);
+						$("td#timelineUsersPendingCount").text(json["timelineUsersPendingCount"]);
+
+						$("td#linksUsersTraversedCount").text(json["linksUsersTraversedCount"]);
+						$("td#linksUsersPendingCount").text(json["linksUsersPendingCount"]);
+
+						$("td#searchHashtagsTraversedCount").text(json["searchHashtagsTraversedCount"]);
+						$("td#searchHashtagsPendingCount").text(json["searchHashtagsPendingCount"]);
+
+						$("td#streamingUsersTraversedCount").text(json["streamingUsersTraversedCount"]);
+						$("td#streamingTweetsCount").text(json["streamingTweetsCount"]);
+
+					} else {
+
+					}
+				});
+			});
+		</script>
+
+	</head>
+
+	<body>
+		<div class="navbar navbar-inverse navbar-fixed-top">
+			<div class="navbar-inner">
+				<div class="container">
+					<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse"> <span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span> </a>
+					<a class="brand" href="#">Twitter Data Fetcher App</a>
+					<div class="nav-collapse collapse">
+						<ul class="nav">
+							<li>
+								<a href="setup.html">Setup</a>
+							</li>
+							<li class="active">
+								<a href="statistics.html">Statistics</a>
+							</li>
+							<li>
+								<a href="#contact">Contact</a>
+							</li>
+						</ul>
+					</div><!--/.nav-collapse -->
+				</div>
+			</div>
+		</div>
+
+		<div class="container" id="statsContainer">
+			<p id="uptimeBanner" class="lead">
+				Application up since:
+				<span id="appStartTime"></span>
+			</p>
+			<legend>
+				Data Collection Statistics
+			</legend>
+			<div id="mainStats" class="row">
+				<!--     		<h3>Main Statistics</h3><br /> -->
+				<br />
+				<div id="tweetsLineChart" style="width: 400px; height: 300px; margin: 0 auto" class="pull-left"></div>
+				<div id="linksLineChart" style="width: 400px; height: 300px; margin: 0 auto" class="pull-right"></div>
+			</div>
 			<br />
-			<div id="tweetsLineChart" style="width: 400px; height: 300px; margin: 0 auto" class="pull-left"></div>
-			<div id="linksLineChart" style="width: 400px; height: 300px; margin: 0 auto" class="pull-right"></div>
-		</div><br /><br />
-		
-		
-		<legend>API Statistics</legend>
-		
-		<div class="row-fluid">
-			<div id="timelineStats" class="span6">
-				<h4>User Timeline</h4>
-				<table class="table table-striped table-bordered">
-					<tbody>
-						<tr>
-							<td># Users Traversed once</td>
-							<td id="timelineUsersTraversedCount">App not running</td>
-						</tr>
-						<tr>
-							<td># Users Pending</td>
-							<td id="timelineUsersPendingCount">App not running</td>
-						</tr>
-					</tbody>
-				</table>
+			<br />
+
+			<legend>
+				API Statistics
+			</legend>
+
+			<div class="row-fluid">
+				<div id="timelineStats" class="span6">
+					<h4>User Timeline</h4>
+					<table class="table table-striped table-bordered">
+						<tbody>
+							<tr>
+								<td># Users Traversed once</td>
+								<td id="timelineUsersTraversedCount"></td>
+							</tr>
+							<tr>
+								<td># Users Pending</td>
+								<td id="timelineUsersPendingCount"></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<div id="graphStats" class="pull-right">
+					<h4>Friends/Followers</h4>
+					<table class="table table-striped table-bordered">
+						<tbody>
+							<tr>
+								<td># Users Traversed once</td>
+								<td id="linksUsersTraversedCount"></td>
+							</tr>
+							<tr>
+								<td># Users Pending</td>
+								<td id="linksUsersPendingCount"></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 			</div>
-			
-			<div id="graphStats" class="pull-right">
-				<h4>Friends/Followers</h4>
-				<table class="table table-striped table-bordered">
-					<tbody>
-						<tr>
-							<td># Users Traversed once</td>
-							<td id="linksUsersTraversedCount">App not running</td>
-						</tr>
-						<tr>
-							<td># Users Pending</td>
-							<td id="linksUsersPendingCount">App not running</td>
-						</tr>
-					</tbody>
-				</table>
+
+			<div class="row">
+				<div id="streamingStats" class="span6">
+					<h4>Streaming</h4>
+					<table class="table table-striped table-bordered">
+						<tbody>
+							<tr>
+								<td># Users Traversed</td>
+								<td id="streamingUsersTraversedCount"></td>
+							</tr>
+							<tr>
+								<td># Tweets</td>
+								<td id="streamingTweetsCount"></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<div id="queryStats" class="pull-right">
+					<h4>Search/Query</h4>
+					<table class="table table-striped table-bordered">
+						<tbody>
+
+							<tr>
+								<td># Hashtags Traversed once</td>
+								<td id="searchHashtagsTraversedCount"></td>
+							</tr>
+							<tr>
+								<td># Hashtags Pending</td>
+								<td id="searchHashtagsPendingCount"></td>
+							</tr>
+							<tr>
+								<td id="">Total Tweets</td>
+								<td>Not yet implemented</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 			</div>
 		</div>
-		
-		<div class="row">
-			<div id="streamingStats" class="span6">
-				<h4>Streaming</h4>
-				<table class="table table-striped table-bordered">
-					<tbody>
-						<tr>
-							<td># Users Traversed</td>
-							<td id="streamingUsersTraversedCount">App not running</td>
-						</tr>
-						<tr>
-							<td># Tweets</td>
-							<td id="streamingTweetsCount">App not running</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-			
-			<div id="queryStats" class="pull-right">
-				<h4>Search/Query</h4>
-				<table class="table table-striped table-bordered">
-					<tbody>
-						
-						<tr>
-							<td># Hashtags Traversed once</td>
-							<td id="searchHashtagsTraversedCount">App not running</td>
-						</tr>
-						<tr>
-							<td># Hashtags Pending</td>
-							<td id="searchHashtagsPendingCount">App not running</td>
-						</tr><tr>
-							<td id="">Total Tweets</td>
-							<td>Not yet implemented</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-    </div> <!-- /container -->
-    
-  </body>
+		<!-- /container -->
+
+	</body>
 </html>
