@@ -41,6 +41,8 @@ public class TwitterStreamManager implements Runnable{
 			// Get all the Twitter configurations (for each app) for the streaming
 			List<ConfigurationBuilder> allStreamingConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.Streaming, appConfig.getDBName());
 			int numberOfApps = allStreamingConfigs.size();
+			if (numberOfApps == 0)
+				return;
 			
 			// Get the list of users to filter stream
 			long[] userIdsToFollow = TwitterMongoDBHandler.getCurrentFollowUserIdList(appConfig.getDBName(), numberOfApps * MAX_USERS_PER_APP);

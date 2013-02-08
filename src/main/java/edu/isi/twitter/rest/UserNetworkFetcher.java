@@ -20,6 +20,7 @@ import com.mongodb.MongoException;
 
 import edu.isi.db.TwitterMongoDBHandler.USER_SOURCE;
 import edu.isi.db.TwitterMongoDBHandler.usersWaitingList_SCHEMA;
+import edu.isi.db.TwitterMongoDBHandler.users_SCHEMA;
 
 public class UserNetworkFetcher {
 	private long uid;
@@ -48,15 +49,22 @@ public class UserNetworkFetcher {
 	}
 
 	public boolean fetchAndStoreInDB(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, 
-			Twitter authenticatedTwitter, DBCollection currentThreadsColl, DBObject threadObj, DBCollection usersWaitingListColl) {
-		boolean frSuccess = addLinks(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, 
-				threadObj, usersWaitingListColl, LINK_TYPE.friend);
-		boolean flwrSuccess = addLinks(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, 
-				threadObj, usersWaitingListColl, LINK_TYPE.follower);
+			Twitter authenticatedTwitter, DBCollection currentThreadsColl, DBObject threadObj, DBCollection usersColl) {
+		boolean frSuccess = true;
+		if (friendDepth > 0) {
+			frSuccess = addLinks(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, 
+					threadObj, usersColl, LINK_TYPE.friend);
+		}
+		boolean flwrSuccess = true;
+		if (followerDepth > 0) {
+			flwrSuccess = addLinks(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, currentThreadsColl, 
+					threadObj, usersColl, LINK_TYPE.follower);
+		}
 		return (frSuccess && flwrSuccess);
 	}
 
-	private boolean addLinks(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter, DBCollection currentThreadsColl, DBObject threadObj, DBCollection usersWaitingListColl, LINK_TYPE link_type) {
+	private boolean addLinks(DBCollection usersGraphColl, DBCollection usersGraphActionListColl, Twitter authenticatedTwitter
+			, DBCollection currentThreadsColl, DBObject threadObj, DBCollection usersColl, LINK_TYPE link_type) {
 		// Create a flag that determines if the new users need to be added to the usersWaitingList collection
 		boolean addToUsersWaitingList = false;
 		if (link_type == LINK_TYPE.friend && friendDepth > 0)
@@ -146,11 +154,13 @@ public class UserNetworkFetcher {
 			linkTwitterListCopy.removeAll(linkDBList);
 			for (Long link_id : linkTwitterListCopy) {
 				/** Add to the usersGraph **/
-				DBObject link = new BasicDBObject("uid", uid).append("link_user_id", link_id).append("link_type", link_type.name()).append("first_seen", now.toDate()).append("last_seen", now.toDate());
+				DBObject link = new BasicDBObject("uid", uid).append("link_user_id", link_id)
+						.append("link_type", link_type.name()).append("first_seen", now.toDate()).append("last_seen", now.toDate());
 				usersGraphColl.save(link);
 				
 				/** Add to the usersGraphActionList **/
-				DBObject action = new BasicDBObject("uid", uid).append("link_user_id", link_id).append("link_type", link_type.name()).append("date", now.toDate());
+				DBObject action = new BasicDBObject("uid", uid).append("link_user_id", link_id)
+						.append("link_type", link_type.name()).append("date", now.toDate());
 				if(linkDBListEmpty)
 					action.put("action", UserAction.init.name());
 				else
@@ -159,7 +169,7 @@ public class UserNetworkFetcher {
 				
 				/** Add to the usersWaitingList if required **/
 				if (addToUsersWaitingList) {
-					addUserToUsersWaitingListCollection(link_id, usersWaitingListColl, link_type);
+					addUserToUsersCollection(link_id, usersColl, link_type);
 				}
 			}
 			
@@ -167,7 +177,8 @@ public class UserNetworkFetcher {
 			linkDBList.removeAll(linkTwitterList);
 			// Get the existing delete links that exist
 			List<Long> existingDeleteLinksList = new ArrayList<Long>();
-			DBObject deleteListingQuery = new BasicDBObject("uid", uid).append("action", UserAction.delete.name()).append("link_type", link_type.name());
+			DBObject deleteListingQuery = new BasicDBObject("uid", uid)
+				.append("action", UserAction.delete.name()).append("link_type", link_type.name());
 			DBCursor existingDeleteLinksC = usersGraphActionListColl.find(deleteListingQuery);
 			while (existingDeleteLinksC.hasNext()) {
 				DBObject dbLink = existingDeleteLinksC.next();
@@ -181,7 +192,8 @@ public class UserNetworkFetcher {
 				}
 				else {
 					// Add the delete link in userGraphAction table
-					DBObject action = new BasicDBObject("uid", uid).append("link_user_id", removedLinkId).append("action", UserAction.delete.name()).append("link_type", link_type.name()).append("date", now.toDate());
+					DBObject action = new BasicDBObject("uid", uid).append("link_user_id", removedLinkId)
+							.append("action", UserAction.delete.name()).append("link_type", link_type.name()).append("date", now.toDate());
 					usersGraphActionListColl.save(action);
 				}
 			}
@@ -192,17 +204,19 @@ public class UserNetworkFetcher {
 		}
 	}
 
-	private void addUserToUsersWaitingListCollection(Long uid, DBCollection usersWaitingListColl, LINK_TYPE link_type) {
+	private void addUserToUsersCollection(Long uid, DBCollection usersListColl, LINK_TYPE link_type) {
 		DBObject usr = new BasicDBObject(usersWaitingList_SCHEMA.uid.name(), uid);
-		usr.put(usersWaitingList_SCHEMA.source.name(), USER_SOURCE.Graph.name());
-		usr.put(usersWaitingList_SCHEMA.friendDepth.name(), friendDepth-1);
-		usr.put(usersWaitingList_SCHEMA.followerDepth.name(), followerDepth-1);
-		usr.put(usersWaitingList_SCHEMA.followMentions.name(), false);
-		usr.put(usersWaitingList_SCHEMA.parsed.name(), false);
-		usr.put(usersWaitingList_SCHEMA.linkType.name(), link_type.name());
+		usr.put(users_SCHEMA.source.name(), USER_SOURCE.Graph.name());
+		usr.put(users_SCHEMA.friendDepth.name(), friendDepth-1);
+		usr.put(users_SCHEMA.followerDepth.name(), followerDepth-1);
+		usr.put(users_SCHEMA.followMentions.name(), false);
+		usr.put(users_SCHEMA.passedGeospatialFilter.name(), true);
+		usr.put(users_SCHEMA.nextUpdateTweetFetcherDate.name(), 0l);
+		usr.put(users_SCHEMA.graphIterationCounter.name(), 0);
+		
 		
 		try {
-			usersWaitingListColl.insert(usr);
+			usersListColl.insert(usr);
 		} catch (MongoException e) {
 			if (e.getCode() == 11000) {
 				return;

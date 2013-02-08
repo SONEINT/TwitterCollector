@@ -103,6 +103,12 @@ public class UserTweetsFetcherThread implements Runnable {
 			
 			long uid = uids.poll();
 			
+			try {
+				TimeUnit.SECONDS.sleep(2);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
 			// Check if the user has been covered already by another thread and should be covered in the next iteration
 			DBObject usr = null;
 			DBCursor usrs = usersColl.find(new BasicDBObject(users_SCHEMA.uid.name(), uid));
@@ -227,7 +233,7 @@ public class UserTweetsFetcherThread implements Runnable {
 				continue;
 			}
 		}
-		logger.info("Queue: " + ids);
+		// logger.info("Queue: " + ids);
 		return ids;
 	}
 	

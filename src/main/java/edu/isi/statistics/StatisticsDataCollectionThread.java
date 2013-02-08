@@ -74,7 +74,7 @@ public class StatisticsDataCollectionThread implements Runnable {
 			
 			// Sleep the thread for 15 minutes and wake up again
 			try {
-				TimeUnit.MINUTES.sleep(1l);
+				TimeUnit.MINUTES.sleep(15l);
 			} catch (InterruptedException e) {
 				logger.error("Error while sleeping thread of statistics collection!", e);
 			}

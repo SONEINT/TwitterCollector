@@ -68,7 +68,7 @@ public class UserTimelineFetcher {
 		Date twoWeeksAgo = date.getTime();
 		
 		while (true) {
-			System.out.println("Paging: " + paging.getMaxId());
+//			System.out.println("Paging: " + paging.getMaxId());
 			ResponseList<Status> statuses = null;
 			try {
 				statuses = authenticatedTwitter.getUserTimeline(uid, paging);
@@ -146,9 +146,7 @@ public class UserTimelineFetcher {
 						}
 					} catch (MongoException e) {
 						if(e.getCode() == 11000) {
-//							System.out.println("YES THIS IS HAPPENING!!!");
 							if (timelineTweetMaxId >= status.getId()) {
-								System.out.println("**************** WORKING **************");
 								timelineTweetMaxId = iterationsMaxTweetId;
 								return true;
 							}

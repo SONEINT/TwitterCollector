@@ -51,6 +51,12 @@ public class UserProfileFillerThread implements Runnable {
 			
 			while (true) {
 				DBCursor cursor = usersWaitingListColl.find(query).snapshot();
+				
+				/******************* NEEDS TO BE TAKEN CARE OF LATER ***/
+				if (cursor.size() == 0)
+					break;
+				/*******************/
+				
 				List<Long> userIdsList = new ArrayList<Long>();
 				
 				while (cursor.hasNext()) {

@@ -5,3 +5,7 @@ target/
 log/
 results/
 lucene-index/
+UserUploadedFiles/
+lucene-index backup/
+data/
+dump/

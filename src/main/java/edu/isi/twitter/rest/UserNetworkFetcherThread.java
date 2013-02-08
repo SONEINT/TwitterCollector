@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +70,7 @@ public class UserNetworkFetcherThread implements Runnable {
 		DBCollection currentThreadsColl 		= twitterDb.getCollection(TwitterCollections.currentThreads.name());
 		DBCollection usersGraphColl 			= twitterDb.getCollection(TwitterCollections.usersGraph.name());
 		DBCollection usersGraphActionListColl 	= twitterDb.getCollection(TwitterCollections.usersGraphActionList.name());
-		DBCollection usersWaitingListColl 		= twitterDb.getCollection(TwitterCollections.usersWaitingList.name());
+//		DBCollection usersWaitingListColl 		= twitterDb.getCollection(TwitterCollections.usersWaitingList.name());
 		Twitter 	 authenticatedTwitter		= new TwitterFactory(cb.build()).getInstance();
 		
 		// Register the thread in the currentThreads table
@@ -82,6 +83,7 @@ public class UserNetworkFetcherThread implements Runnable {
 		while (true) {
 			if(uids.size() == 0) {
 				uids = getNewList(usersColl, currentThreadsColl);
+				
 				if(uids.size() == 0) {
 					logger.error("Empty queue received!");
 					threadObj.put(currentThreads_SCHEMA.status.name(), "closed");
@@ -91,6 +93,12 @@ public class UserNetworkFetcherThread implements Runnable {
 			}
 			
 			long uid = uids.poll();
+			
+			try {
+				TimeUnit.SECONDS.sleep(3);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 			
 			// Check if the user has been covered already by another thread and should be covered in the next iteration
 			DBObject usr = null;
@@ -121,11 +129,17 @@ public class UserNetworkFetcherThread implements Runnable {
 				
 			if (usr == null) continue;
 			int itr = Integer.parseInt(usr.get(users_SCHEMA.graphIterationCounter.name()).toString());
+			
+			int friendDepth = Integer.parseInt(usr.get(users_SCHEMA.friendDepth.name()).toString());
+			int followerDepth = Integer.parseInt(usr.get(users_SCHEMA.followerDepth.name()).toString());
 			// Mark it for the next iteration. Increment by more than 3 if it was 0. graphIterationCounter is initially:
 			// 0 is for the seed/main users
 			// 1 is for the mentioned users
 			// 2 is if the profile changed for a user
 			int nextItr = (itr == 0 || itr == 1 || itr == 2) ? itr + 3 : itr+1;
+			
+			if (friendDepth == 0 && followerDepth == 0)
+				nextItr = 9999999;
 			usr.put(users_SCHEMA.graphIterationCounter.name(), nextItr);
 			usersColl.save(usr);
 			
@@ -142,10 +156,9 @@ public class UserNetworkFetcherThread implements Runnable {
 			// Process
 			logger.info("Getting network for the user: " + uid);
 			UserNetworkFetcher f = new UserNetworkFetcher(uid, 
-					Integer.parseInt(usr.get(users_SCHEMA.friendDepth.name()).toString()), 
-					Integer.parseInt(usr.get(users_SCHEMA.followerDepth.name()).toString()));
+					friendDepth, followerDepth);
 			boolean success = f.fetchAndStoreInDB(usersGraphColl, usersGraphActionListColl, authenticatedTwitter, 
-					currentThreadsColl, threadObj, usersWaitingListColl);
+					currentThreadsColl, threadObj, usersColl);
 			if (success) {
 				usr.put("onceDone", true); // for debugging purposes
 				usr.put(users_SCHEMA.followerCount.name(), f.getFollowerCount());

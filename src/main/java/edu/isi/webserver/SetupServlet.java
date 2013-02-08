@@ -162,7 +162,6 @@ public class SetupServlet extends HttpServlet {
 				// Default is a screen name
 				else {
 					String screenName = scanner.next();
-					System.out.println("Screenname from inside: " + screenName);
 					if (screenName.trim().equals(""))
 						continue;
 					try {

@@ -134,7 +134,7 @@ public class SearchAPITweetsFetcher {
 						// Increment the tweet counter for it in the Statistics Manager
 						statsMgr.incrementTweetCounterForHashtag(queryString);
 					} catch (MongoException e) {
-						logger.error(e.getMessage());
+						// logger.error(e.getMessage());
 						if(e.getCode() == 11000) {
 							// Do nothing
 //							logger.info("Tweet already exists!");
@@ -148,10 +148,10 @@ public class SearchAPITweetsFetcher {
 				if(i == tweets.size()-1)
 					maxId = tweet.getId()-1;
             }
-            // Sleeping thread for 2 seconds to avoid generating requests too fast
+            // Sleeping thread for 3 seconds to avoid generating requests too fast
             try {
 //            	logger.info("sleeping");
-				Thread.sleep(TimeUnit.SECONDS.toMillis(2));
+				Thread.sleep(TimeUnit.SECONDS.toMillis(3));
 //				logger.info("waking up");
 			} catch (InterruptedException e) {
 				e.printStackTrace();

@@ -72,4 +72,13 @@
 		<servlet-name>GetAppConfigServlet</servlet-name>
 		<url-pattern>/GetAppConfigServlet</url-pattern>
 	</servlet-mapping>
+	
+	<servlet>
+		<servlet-name>ResumeApplicationServlet</servlet-name>
+		<servlet-class>edu.isi.webserver.ResumeApplicationServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>ResumeApplicationServlet</servlet-name>
+		<url-pattern>/ResumeApplicationServlet</url-pattern>
+	</servlet-mapping>
 </web-app>

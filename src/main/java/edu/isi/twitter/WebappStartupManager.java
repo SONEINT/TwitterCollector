@@ -21,7 +21,6 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
-import com.mongodb.WriteConcern;
 
 import edu.isi.db.MongoDBHandler;
 import edu.isi.db.TwitterMongoDBHandler;
@@ -55,18 +54,18 @@ public class WebappStartupManager {
 	
 	public void startApplication() {
 		try {
-//			TwitterMongoDBHandler.createCollectionsAndIndexes(appConfig.getDBName());
-//			initializeUsersCollection();
-//			deployHashTagsTweetsFetcherThreads();
-//			clearOldThreadsFromTable();
+			TwitterMongoDBHandler.createCollectionsAndIndexes(appConfig.getDBName());
+			initializeUsersCollection();
+			deployHashTagsTweetsFetcherThreads();
+			clearOldThreadsFromTable();
 //			
 //			// Start the threads
-//			runTwitterStreamListenerThread();
-//			runUserProfileFillerThread();
-//			runUserNetworkFetcherThread();
-//			runTwitterTimeLineFetcher();
+			runTwitterStreamListenerThread();
+			runUserProfileFillerThread();
+			runUserNetworkFetcherThread();
+			runTwitterTimeLineFetcher();
 			
-			runFakeDataCollectionThread();
+//			runFakeDataCollectionThread();
 			
 			runStatisticsCollectionThread();
 			
@@ -78,48 +77,60 @@ public class WebappStartupManager {
 			logger.error("Illegal argument specified in web.xml. Error setting up the config!", e);
 		} catch (MongoException e) {
 			logger.error("Mongo exception while setting up the application!", e);
-//		} catch (InterruptedException e) {
-//			logger.error("Thread interrupted abruptly while setting up the application!", e);
+		} catch (InterruptedException e) {
+			logger.error("Thread interrupted abruptly while setting up the application!", e);
 		}
 		logger.info(appConfig.toString());
 	}
-
-	private void runFakeDataCollectionThread() throws UnknownHostException, MongoException {
-		new Thread(new Runnable() {
-			
-			@Override
-			public void run() {
-				Mongo m = null;
-				try {
-					m = MongoDBHandler.getNewMongoConnection();
-					m.setWriteConcern(WriteConcern.SAFE);
-				} catch (UnknownHostException e) {
-					logger.error("UnknownHostException", e);
-				} catch (MongoException e) {
-					logger.error("MongoException", e);
-				}
-				if(m == null) {
-					logger.error("Error getting connection to MongoDB! Cannot proceed with this thread.");
-					return;
-				}
-				
-				DB twitterDb = m.getDB(appConfig.getDBName());
-				DBCollection tweets = twitterDb.getCollection(TwitterCollections.tweets.name());
-				DBCollection links = twitterDb.getCollection(TwitterCollections.usersGraph.name());
-				
-				while (true) {
-					tweets.insert(new BasicDBObject("test", "test"));
-					links.insert(new BasicDBObject("test", "test"));
-					try {
-						TimeUnit.SECONDS.sleep(1);
-					} catch (InterruptedException e) {
-						
-					}
-				}
-			}
-		}).start();
+	
+	public void resumeApplication() {
+		clearOldThreadsFromTable();
 		
+		// Start the threads
+		runTwitterStreamListenerThread();
+		runUserProfileFillerThread();
+		runUserNetworkFetcherThread();
+		runTwitterTimeLineFetcher();
+		
+		runStatisticsCollectionThread();
 	}
+
+//	private void runFakeDataCollectionThread() throws UnknownHostException, MongoException {
+//		new Thread(new Runnable() {
+//			
+//			@Override
+//			public void run() {
+//				Mongo m = null;
+//				try {
+//					m = MongoDBHandler.getNewMongoConnection();
+//					m.setWriteConcern(WriteConcern.SAFE);
+//				} catch (UnknownHostException e) {
+//					logger.error("UnknownHostException", e);
+//				} catch (MongoException e) {
+//					logger.error("MongoException", e);
+//				}
+//				if(m == null) {
+//					logger.error("Error getting connection to MongoDB! Cannot proceed with this thread.");
+//					return;
+//				}
+//				
+//				DB twitterDb = m.getDB(appConfig.getDBName());
+//				DBCollection tweets = twitterDb.getCollection(TwitterCollections.tweets.name());
+//				DBCollection links = twitterDb.getCollection(TwitterCollections.usersGraph.name());
+//				
+//				while (true) {
+//					tweets.insert(new BasicDBObject("test", "test"));
+//					links.insert(new BasicDBObject("test", "test"));
+//					try {
+//						TimeUnit.SECONDS.sleep(1);
+//					} catch (InterruptedException e) {
+//						
+//					}
+//				}
+//			}
+//		}).start();
+//		
+//	}
 
 	private void runStatisticsCollectionThread() {
 		Thread t = new Thread (new StatisticsDataCollectionThread(appConfig));
@@ -154,10 +165,6 @@ public class WebappStartupManager {
 	}
 	
 	private void initializeUsersCollection() throws UnknownHostException, MongoException {
-		// ConfigurationBuilder and Twitter instances to be used in case when only user screen names are present
-		ConfigurationBuilder cb =  TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup, appConfig.getDBName());
-		Twitter twitter = new TwitterFactory(cb.build()).getInstance();
-		
 		/** Seed users are copied to the users collection and various depths are also added in the user object **/
 		Mongo m = MongoDBHandler.getNewMongoConnection();
 		DB db = m.getDB(appConfig.getDBName());
@@ -165,6 +172,12 @@ public class WebappStartupManager {
 		DBCollection usersColl = db.getCollection(TwitterCollections.users.name());
 		
 		DBCursor cursor = seedUsersColl.find();
+		if (cursor.count() == 0) 
+			return;
+
+		// ConfigurationBuilder and Twitter instances to be used in case when only user screen names are present
+		ConfigurationBuilder cb =  TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup, appConfig.getDBName());
+		Twitter twitter = new TwitterFactory(cb.build()).getInstance();
 		int userAddedCounter = 0;
         try {
             while(cursor.hasNext()) {
@@ -269,7 +282,7 @@ public class WebappStartupManager {
 		/** Quickly check if the threads need to be deployed by checking if we have any seed hash tags **/
 		if (TwitterMongoDBHandler.getSeedHashTagsList(appConfig.getDBName()).length == 0)
 			return;
-		
+		statsMgr.setTotalHashtagsCount(TwitterMongoDBHandler.getSeedHashTagsList(appConfig.getDBName()).length);
 		logger.info("Starting hash tags tweet fetcher threads...");
 		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.Search
 				, appConfig.getDBName());
