@@ -8,11 +8,7 @@ import org.joda.time.PeriodType;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
 import com.mongodb.MongoException;
-
-import edu.isi.db.TwitterMongoDBHandler.tweetsStats_SCHEMA;
 
 public class TestPlayground {
 
@@ -131,11 +127,11 @@ public class TestPlayground {
 		
 	}
 
-	private static void insertIntoCollection(DBCollection statsColl, long date, DateTime dateR, long count) {
-		BasicDBObject obj = new BasicDBObject(tweetsStats_SCHEMA.time.name(), date)
-			.append(tweetsStats_SCHEMA.timeReadable.name(), dateR.toString())
-			.append(tweetsStats_SCHEMA.count.name(), count); 
-		
-		statsColl.insert(obj);
-	}
+//	private static void insertIntoCollection(DBCollection statsColl, long date, DateTime dateR, long count) {
+//		BasicDBObject obj = new BasicDBObject(tweetsStats_SCHEMA.time.name(), date)
+//			.append(tweetsStats_SCHEMA.timeReadable.name(), dateR.toString())
+//			.append(tweetsStats_SCHEMA.count.name(), count); 
+//		
+//		statsColl.insert(obj);
+//	}
 }
