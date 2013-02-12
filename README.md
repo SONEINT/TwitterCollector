@@ -11,4 +11,8 @@ Various parameters are available for tuning to define levels of friends/follower
 
 ### Installation
 
-Run `mvn package` from inside the main directory to create a WAR file inside the target folder. It can then be deployed to a Tomcat server or a Jetty container by copying the file to their webapps folder. Once deployed, open the URL: *http://localhost:8080/twitterDataAcquisition/setup.html* in your browser to specify input data and confogure the following parametrs:
+Run `mvn package` from inside the main directory to create a WAR file inside the target folder. It can then be deployed to a Tomcat server or a Jetty container by copying the WAR package to the server's webapps folder. Once deployed, open the URL: __http://localhost:8080/twitterDataAcquisition/setup.html__ in your browser (obvisouly, your port # may vary) to specify the input data and configure the following parameters:
+- `Database Name`: Name of the database used by MongoDB to store all the collected data.
+- `Friend Depth`: Levels of friends to traverse for getting tweets/network for a given seed user. For e.g. if you want to collect tweets for the seed user and its friends also, set the value to 1. To collect data for only the seed user, set the value to 0.
+- `Follower Depth`: Same as above except that it specifies the # of levels for the seed user's followers.
+
