@@ -15,7 +15,9 @@ Run `mvn package` from inside the main directory to create a WAR file inside the
 - __Database Name__: Name of the database used by MongoDB to store all the collected data.
 - __Friend Depth__: # of levels of friends to traverse for getting tweets/network for a given seed user. For e.g. if you want to collect tweets for the seed user and its friends also, set the value to 1. To collect data for only the given seed users, set the value to 0.
 - __Follower Depth__: # of levels for the followers.
-- __Follow Mentions?__: Boolean flag that specifies if the tweets/network should be collected for the users mentioned (using the __@__ character) in the seed users tweets.
+- __Follow Mentions?__: Boolean flag that specifies if the tweets/network should be collected for the users mentioned in the seed users tweets (using the __@__ character).
+- __Seed Users List__ and __Seed Hashtags List__: To specify the input data.
+- __Twitter Applications__
 
 ### Setup Screenshot
 
