@@ -17,7 +17,7 @@ Run `mvn package` from inside the main directory to create a WAR file inside the
 - __Follower Depth__: # of levels for the followers.
 - __Follow Mentions?__: Boolean flag that specifies if the tweets/network should be collected for the users mentioned in the seed users tweets (using the __@__ character).
 - __Seed Users List__ and __Seed Hashtags List__: To specify the input data.
-- __Twitter Applications__: Data collection with Twitter API require Twitter Developer applications for making [OAuth](https://dev.twitter.com/docs/auth/oauth) signed requests to fetch data. Such applications can be easily created by logging in [dev.twitter.com](https://dev.twitter.com), creating a application, and [generate tokens](https://dev.twitter.com/docs/auth/tokens-devtwittercom) that can be used to make requests. Our toolkit currently uses 1 Twitter application for 1 kind of API request.  
+- __Twitter Applications__: Data collection with Twitter API requires Twitter Developer applications for making [OAuth](https://dev.twitter.com/docs/auth/oauth) signed requests. Such applications can be easily created by logging in [dev.twitter.com](https://dev.twitter.com), creating a application, and [generate tokens](https://dev.twitter.com/docs/auth/tokens-devtwittercom) that can be used to make requests. Our toolkit currently uses one Twitter application for one kind of API request.  
 
 ### Setup Screenshot
 
