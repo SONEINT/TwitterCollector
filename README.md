@@ -19,5 +19,5 @@ Run `mvn package` from inside the main directory to create a WAR file inside the
 ### Setup Screenshot
 
 <img alt="Demo picture"
-        src="http://isi.edu/~shubhamg/tweet-collector-setup.png">
+        src="http://isi.edu/~shubhamg/tweet-collector-setup.png" width="60%" height="60%">
 
