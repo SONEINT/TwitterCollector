@@ -36,7 +36,7 @@ Once the application has started, you can monitor the tweet/network collection b
 
 <img alt="Demo picture" src="http://isi.edu/~shubhamg/stats.png" width="90%" height="80%">
 
-## MongoDB Collections ##
+## Description of MongoDB Collections ##
 
 Following provides a description of all the major collections (tables) that are used for storing the tweets and network:
 
@@ -55,6 +55,3 @@ Following provides a description of all the major collections (tables) that are 
 - __usersGraph__: Stores data regarding the network (friends and followers) of the user.
 - __usersGraphActionList__: Stores the data regarding the changes in a user's network such as deletions and additions in the user's friends and followers list over time.
 - __usersWaitingList__: Stores the users for which the tweets/network has not been yet collected and are in the waiting list for data collection. These users have been collected through the user's network, tweet mentions, retweets, etc. depending on the application input specifications.
-
-
-
