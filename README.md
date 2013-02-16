@@ -41,9 +41,19 @@ Once the application has started, you can monitor the tweet/network collection b
 Following provides a description of all the major collections (tables) that are used for storing the tweets and network:
 
 - __applications__: Stores data for the Twitter developer applications.
-- __currentThreads__: Used for keeping track of all the threads deployed by the application. It stores information about the thread status (whether stopped or working), the userid it is currently working on, etc.
+- __currentThreads__: Used for keeping track of all the threads deployed by the application. It stores information about the thread status (whether stopped or working), userid it is currently working on, etc.
 - __hashTagTweetsTable__: Stores the relationship between the tweet and the hashtag used for retrieving the tweet.
-- __linkStats__: Stores the total number of network links collected at every 15 minutes interval.
+- __linkStats__: Stores the total count of network links collected at every 15 minutes interval. It is used in showing the network links graph on the Statistics webpage.
 - __mentionsTable__: Stores information about the users mentioned in the tweets.
-- __replyToTable__: Stores information about the 
+- __replyToTable__: If a user tweeted in reply to another's user tweet, this table stores all the information to capture this interaction such as the tweet (and its user), tweet to which it was replied to (and its user), etc.
+- __seedHashTags__: Stores the input hashtags specified by the user (we refer to them as seed hashtags).
+- __seedUsers__: Stores the input users specified by the user (we refer to them as seed users).
+- __tweets__: Stores all the collected tweets in their original JSON format.
+- __tweetsLog__: Stores information about the API used (such as Streaming, Search or Timeline), database insertion time, creation time for the tweet.
+- __tweetState__: Stores the total count tweets collected at every 15 minutes interval. It is used in showing the tweets graph on the Statistics webpage.
+- __users__: Stores information about the users such as screenname, timezone and location. Some user statistics are also calculated and saved such as average tweets per day and follower count. Other attributes store data that are relevant to the internal functioning of the application (e.g. nextUpdateTweetFetcherDate, lastUpdatedTweetFetcher, graphIterationCounter, friendDepth, etc).
+- __usersGraph__: Stores data regarding the network (friends and followers) of the user.
+- __usersGraphActionList__: 
+
+
 
