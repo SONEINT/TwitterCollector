@@ -24,7 +24,7 @@ Once all the parameters has been specified, deploy the application to start coll
 
 ### Setup Screenshot ###
 
-<img alt="Demo picture" style='border:1px solid #000000' src="http://isi.edu/~shubhamg/tweet-collector-setup.png" width="80%" height="80%">
+<img alt="Demo picture" style='border:1px solid #000000' src="http://isi.edu/~shubhamg/tweet-collector-setup.png" width="50%" height="70%>
 
 ### Add Applciation Screenshot ###
 
