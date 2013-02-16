@@ -49,11 +49,12 @@ Following provides a description of all the major collections (tables) that are 
 - __seedHashTags__: Stores the input hashtags specified by the user (we refer to them as seed hashtags).
 - __seedUsers__: Stores the input users specified by the user (we refer to them as seed users).
 - __tweets__: Stores all the collected tweets in their original JSON format.
-- __tweetsLog__: Stores information about the API used (such as Streaming, Search or Timeline), database insertion time, creation time for the tweet.
+- __tweetsLog__: Stores information about the API used (such as Streaming, Search or Timeline), insertion time in the database, creation time for the tweet.
 - __tweetState__: Stores the total count tweets collected at every 15 minutes interval. It is used in showing the tweets graph on the Statistics webpage.
 - __users__: Stores information about the users such as screenname, timezone and location. Some user statistics are also calculated and saved such as average tweets per day and follower count. Other attributes store data that are relevant to the internal functioning of the application (e.g. nextUpdateTweetFetcherDate, lastUpdatedTweetFetcher, graphIterationCounter, friendDepth, etc).
 - __usersGraph__: Stores data regarding the network (friends and followers) of the user.
-- __usersGraphActionList__: 
+- __usersGraphActionList__: Stores the data regarding the changes in a user's network such as deletions and additions in the user's friends and followers list over time.
+- __usersWaitingList__: Stores the users for which the tweets/network has not been yet collected. These users have been collected through the user's network, tweet mentions, retweets, etc. depending on the application input specifications.
 
 
 
