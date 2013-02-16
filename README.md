@@ -17,10 +17,12 @@ Run `mvn package` from inside the main directory to create a WAR file inside the
 - __Follower Depth__: # of levels for the followers.
 - __Follow Mentions?__: Boolean flag that specifies if the tweets/network should be collected for the users mentioned in the seed users tweets (using the __@__ character).
 - __Seed Users List__ and __Seed Hashtags List__: To specify the input data.
-- __Twitter Applications__: Data collection with Twitter API requires Twitter Developer applications for making [OAuth](https://dev.twitter.com/docs/auth/oauth) signed requests. Such applications can be easily created by logging in [dev.twitter.com](https://dev.twitter.com), creating a application, and [generate tokens](https://dev.twitter.com/docs/auth/tokens-devtwittercom) that can be used to make requests. Our toolkit currently uses one Twitter application for one kind of API request.  
+- __Twitter Applications__: Data collection with Twitter API requires Twitter Developer applications for making [OAuth](https://dev.twitter.com/docs/auth/oauth) signed requests. Such applications can be easily created by logging in [dev.twitter.com](https://dev.twitter.com), creating a application, and [generate tokens](https://dev.twitter.com/docs/auth/tokens-devtwittercom) that can be used to make requests. Our toolkit currently uses one Twitter application for one kind of API request. Once the application has been created, press the __Add application__ button and specify the credentials as shown in the screenshot below.
 
 ### Setup Screenshot
 
-<img alt="Demo picture"
-        src="http://isi.edu/~shubhamg/tweet-collector-setup.png" width="80%" height="80%">
+<img alt="Demo picture" src="http://isi.edu/~shubhamg/tweet-collector-setup.png" width="80%" height="80%">
 
+### Add Applciation Screenshot
+
+<img alt="Demo picture" src="http://isi.edu/~shubhamg/add-application.png" width="80%" height="80%">
