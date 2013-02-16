@@ -24,7 +24,7 @@ Once all the parameters has been specified, deploy the application to start coll
 
 ### Setup Screenshot ###
 
-<img alt="Demo picture" style='border:1px solid #000000' src="http://isi.edu/~shubhamg/tweet-collector-setup.png" width="50%" height="70%>
+<img alt="Demo picture" src="http://isi.edu/~shubhamg/tweet-collector-setup.png" width="50%" height="70%">
 
 ### Add Applciation Screenshot ###
 
@@ -35,3 +35,12 @@ Once all the parameters has been specified, deploy the application to start coll
 Once the application has started, you can monitor the tweet/network collection by clicking on the Statistics link present in the top menu of the webpage. It shows interactive graphs and provides some numerical stats about the data collection. An example statistics webpage screenshot:
 
 <img alt="Demo picture" src="http://isi.edu/~shubhamg/stats.png" width="90%" height="80%">
+
+## MongoDB Collections ##
+
+Following provides a description of all the major collections (tables) that are used for storing the tweets and network:
+
+- __applications__: Stores data for the Twitter developer applications.
+- __currentThreads__: Used for keeping track of all the threads that are running. It tells if the thread has stopped working, the user it is currently working on, etc.
+- __hashTagTweetsTable__: Keeps track 
+
