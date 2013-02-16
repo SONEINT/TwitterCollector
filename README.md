@@ -25,4 +25,4 @@ Run `mvn package` from inside the main directory to create a WAR file inside the
 
 ### Add Applciation Screenshot
 
-<img alt="Demo picture" src="http://isi.edu/~shubhamg/add-application.png" width="80%" height="80%">
+<img alt="Demo picture" src="http://isi.edu/~shubhamg/add-application.png" width="60%" height="50%">
