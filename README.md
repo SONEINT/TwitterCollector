@@ -26,7 +26,7 @@ Once all the parameters has been specified, deploy the application to start coll
 
 <img alt="Demo picture" src="http://isi.edu/~shubhamg/tweet-collector-setup.png" width="50%" height="70%">
 
-### Add Applciation Screenshot ###
+### Add Application Screenshot ###
 
 <img alt="Demo picture" src="http://isi.edu/~shubhamg/add-application.png" width="60%" height="50%">
 
@@ -41,6 +41,9 @@ Once the application has started, you can monitor the tweet/network collection b
 Following provides a description of all the major collections (tables) that are used for storing the tweets and network:
 
 - __applications__: Stores data for the Twitter developer applications.
-- __currentThreads__: Used for keeping track of all the threads that are running. It tells if the thread has stopped working, the user it is currently working on, etc.
-- __hashTagTweetsTable__: Keeps track 
+- __currentThreads__: Used for keeping track of all the threads deployed by the application. It stores information about the thread status (whether stopped or working), the userid it is currently working on, etc.
+- __hashTagTweetsTable__: Stores the relationship between the tweet and the hashtag used for retrieving the tweet.
+- __linkStats__: Stores the total number of network links collected at every 15 minutes interval.
+- __mentionsTable__: Stores information about the users mentioned in the tweets.
+- __replyToTable__: Stores information about the 
 
