@@ -22,7 +22,7 @@ import edu.isi.twitter.AppConfig;
 import edu.isi.twitter.TwitterApplicationManager;
 import edu.isi.twitter.TwitterApplicationManager.ApplicationTag;
 
-public class TwitterStreamManager implements Runnable{
+public class TwitterStreamManager implements Runnable {
 	
 	private AppConfig appConfig;
 	private StatisticsManager statsMgr;

@@ -34,7 +34,7 @@ public class TwitterRestPlayground {
 		Paging paging = new Paging(1, 100);
 		
 		try {
-			ResponseList<Status> retweets = authenticatedTwitter.getRetweetedByUser(37032481, paging);
+			ResponseList<Status> retweets = authenticatedTwitter.getFavorites(37032481, paging);
 			for (int i=0; i<retweets.size(); i++) {
 				Status rt = retweets.get(i);
 				System.out.println(rt.getText());

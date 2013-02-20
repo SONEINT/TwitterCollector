@@ -80,7 +80,7 @@ public class UserProfileFillerThread implements Runnable {
 							userList = authenticatedTwitter.lookupUsers(userIds);
 						}  catch (TwitterException e) {
 							// Taking care of the rate limiting
-							if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
+							if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemaining() == 0)) {
 								long timeToSleep = TimeUnit.MINUTES.toMillis(60); // Default sleep length = 60 minutes
 								if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
 									timeToSleep = TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60);

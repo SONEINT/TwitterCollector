@@ -74,7 +74,7 @@ public class UserTimelineFetcher {
 				statuses = authenticatedTwitter.getUserTimeline(uid, paging);
 			} catch (TwitterException e) {
 				// Taking care of the rate limiting
-				if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
+				if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemaining() == 0)) {
 					logger.info("Reached rate limit!");
 					long timeToSleep = TimeUnit.MINUTES.toMillis(60); // Default sleep length = 60 minutes
 					if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {

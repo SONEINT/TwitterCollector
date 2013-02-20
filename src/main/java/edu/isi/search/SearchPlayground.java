@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 import twitter4j.Query;
 import twitter4j.QueryResult;
-import twitter4j.Tweet;
+import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
@@ -22,19 +22,19 @@ public class SearchPlayground {
 //            Query query = new Query("from:BillGates OR to:ShubhamGupta OR @ShubhamGupta");
 //        	Query query = new Query("from:BillGates OR from:ShubhamGupta OR to:BillGates");
         	Query query = new Query("Shubham");
-            query.setRpp(100);
+            query.setCount(100);
             long maxId = 0l;
             
             while (true) {
             	if(maxId != 0l)
             		query.setMaxId(maxId);
             	QueryResult result = twitter.search(query);
-                List<Tweet> tweets = result.getTweets();
+                List<Status> tweets = result.getTweets();
 //                if(tweets.size() == 1 && maxId != 0l)
 //                	break;
                 
                 for (int i=0; i<tweets.size(); i++) {
-                	Tweet tweet = tweets.get(i);
+                	Status tweet = tweets.get(i);
                 	//String json = DataObjectFactory.getRawJSON(tweet);
                     System.out.println(tweet.getText());
                     

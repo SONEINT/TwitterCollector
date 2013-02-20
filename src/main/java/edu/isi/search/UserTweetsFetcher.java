@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import twitter4j.Query;
 import twitter4j.QueryResult;
-import twitter4j.Tweet;
+import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.json.DataObjectFactory;
@@ -32,7 +32,7 @@ public class UserTweetsFetcher {
 
 	public boolean fetchAndStoreInDB(DBCollection tweetsCollection, DBCollection currentThreadsColl, DBObject threadObj) {
             Query query = new Query(hashTag);
-            query.setRpp(RESULTS_PER_PAGE);
+            query.setCount(RESULTS_PER_PAGE);
             long maxId = 0l;
             
             while (true) {
@@ -43,7 +43,7 @@ public class UserTweetsFetcher {
             		result = authenticatedTwitter.search(query);
             	} catch (TwitterException e) {
             		// Taking care of the rate limiting
-    				if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
+    				if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemaining() == 0)) {
     					if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
     						try {
     							logger.info("Reached rate limit! Making hashtag tweets fetcher thread sleep for " + e.getRateLimitStatus().getSecondsUntilReset() + " seconds.");
@@ -89,12 +89,12 @@ public class UserTweetsFetcher {
             	if (result == null || result.getTweets().size() == 0)
             		break;
             	
-                List<Tweet> tweets = result.getTweets();
+                List<Status> tweets = result.getTweets();
                 if(tweets.size() == 1 && maxId != 0l)
                 	break;
                 
                 for (int i=0; i<tweets.size(); i++) {
-                	Tweet tweet = tweets.get(i);
+                	Status tweet = tweets.get(i);
                     String json = DataObjectFactory.getRawJSON(tweet);
     				DBObject dbObject = (DBObject)JSON.parse(json);
     				if(dbObject != null) {

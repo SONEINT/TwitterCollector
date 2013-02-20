@@ -6,6 +6,7 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import twitter4j.StallWarning;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
@@ -146,5 +147,11 @@ public class TwitterStreamListener implements StatusListener {
 				continue;
 			}
 		}
+	}
+
+	@Override
+	public void onStallWarning(StallWarning warning) {
+		logger.info("Got stall warning: " + warning.getMessage());
+		
 	}
 }

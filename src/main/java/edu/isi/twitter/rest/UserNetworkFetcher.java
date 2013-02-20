@@ -87,7 +87,7 @@ public class UserNetworkFetcher {
 						ids = authenticatedTwitter.getFriendsIDs(uid, cursor);
 				} catch (TwitterException e) {
 					// Taking care of the rate limiting
-					if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
+					if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemaining() == 0)) {
 						logger.info("Reached rate limit!");
 						long timeToSleep = TimeUnit.MINUTES.toMillis(60); // Default sleep length = 60 minutes
 						

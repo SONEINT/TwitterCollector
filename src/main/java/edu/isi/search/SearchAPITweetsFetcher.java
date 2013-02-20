@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import twitter4j.Query;
 import twitter4j.QueryResult;
-import twitter4j.Tweet;
+import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.UserMentionEntity;
@@ -48,7 +48,7 @@ public class SearchAPITweetsFetcher {
 			DBObject threadObj, DBCollection tweetsLogColl, DBCollection replyToColl, DBCollection mentionsColl, 
 			DBCollection hashtagTweetsColl, StatisticsManager statsMgr) {
         Query query = new Query(getNormalizedQueryString());
-        query.setRpp(RESULTS_PER_PAGE);
+        query.setCount(RESULTS_PER_PAGE);
         long maxId = 0l;
         
         while (true) {
@@ -59,7 +59,7 @@ public class SearchAPITweetsFetcher {
         		result = authenticatedTwitter.search(query);
         	} catch (TwitterException e) {
         		// Taking care of the rate limiting
-				if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemainingHits() == 0)) {
+				if (e.exceededRateLimitation() || (e.getRateLimitStatus() != null && e.getRateLimitStatus().getRemaining() == 0)) {
 					long timeToSleep = TimeUnit.MINUTES.toMillis(60); // Default sleep length = 60 minutes
 					if (e.getRateLimitStatus().getSecondsUntilReset() > 0) {
 						timeToSleep = TimeUnit.SECONDS.toMillis(e.getRateLimitStatus().getSecondsUntilReset() + 60);
@@ -91,12 +91,12 @@ public class SearchAPITweetsFetcher {
         	if (result == null || result.getTweets().size() == 0)
         		break;
         	
-            List<Tweet> tweets = result.getTweets();
+            List<Status> tweets = result.getTweets();
 //            if(tweets.size() == 1 && maxId != 0l)
 //            	break;
             
             for (int i=0; i<tweets.size(); i++) {
-            	Tweet tweet = tweets.get(i);
+            	Status tweet = tweets.get(i);
                 String json = DataObjectFactory.getRawJSON(tweet);
 				DBObject dbObject = (DBObject)JSON.parse(json);
 				if(dbObject != null) {
@@ -113,14 +113,14 @@ public class SearchAPITweetsFetcher {
 						// Add to replyTo table is the tweet was posted in reply to some previous tweet
 						if (tweet.getInReplyToStatusId() != -1) {
 							TwitterMongoDBHandler.addToReplyToTable(replyToColl, tweet.getId(), tweet.getInReplyToStatusId()
-									, tweet.getFromUserId(), tweet.getToUserId(), now.getMillis(), tweet.getCreatedAt().getTime());
+									, tweet.getUser().getId(), tweet.getInReplyToUserId(), now.getMillis(), tweet.getCreatedAt().getTime());
 						}
 						
 						// Add to userWaitingList collection if required
 						UserMentionEntity[] mentionedEntities = tweet.getUserMentionEntities();
 						if (mentionedEntities != null && mentionedEntities.length != 0) {
 							for (UserMentionEntity userMention : mentionedEntities) {
-								TwitterMongoDBHandler.addToMentionsTable(mentionsColl, tweet.getId(), tweet.getFromUserId(), 
+								TwitterMongoDBHandler.addToMentionsTable(mentionsColl, tweet.getId(), tweet.getUser().getId(), 
 										userMention.getId(), now.getMillis(), tweet.getCreatedAt().getTime());
 							}
 						}
@@ -128,7 +128,7 @@ public class SearchAPITweetsFetcher {
 						// Add to hashtagtweets table if the sesrch entity is a hashtag
 						if (queryType == QUERY_TYPE.hashTag) {
 							TwitterMongoDBHandler.addTohashTagTweetsTable(hashtagTweetsColl, queryString, tweet.getId(), 
-									tweet.getFromUserId(), now.getMillis(), tweet.getCreatedAt().getTime());
+									tweet.getUser().getId(), now.getMillis(), tweet.getCreatedAt().getTime());
 						}
 						
 						// Increment the tweet counter for it in the Statistics Manager
