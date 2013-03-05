@@ -83,7 +83,7 @@ public class WebappStartupManager {
 		logger.info(appConfig.toString());
 	}
 	
-	public void resumeApplication() {
+	public void resumeApplication() throws UnknownHostException, MongoException, InterruptedException {
 		clearOldThreadsFromTable();
 		
 		// Start the threads
@@ -91,7 +91,7 @@ public class WebappStartupManager {
 		runUserProfileFillerThread();
 		runUserNetworkFetcherThread();
 		runTwitterTimeLineFetcher();
-		
+		deployHashTagsTweetsFetcherThreads();
 		runStatisticsCollectionThread();
 	}
 

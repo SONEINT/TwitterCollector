@@ -10,6 +10,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.MongoException;
+
 import edu.isi.twitter.AppConfig;
 import edu.isi.twitter.AppConfig.CONFIG_ATTRIBUTE;
 import edu.isi.twitter.WebappStartupManager;
@@ -42,7 +44,13 @@ public class ResumeApplicationServlet extends HttpServlet {
 		// Create the StartupManager instance, store the stats object in ServletContext and start the application
 		WebappStartupManager mgr = new WebappStartupManager(cfg);
 		request.getServletContext().setAttribute(SERVLET_CONTEXT_ATTRIBUTE.statsMgr.name(), mgr.getStatisticsManager()); 
-		mgr.resumeApplication();
+		try {
+			mgr.resumeApplication();
+		} catch (MongoException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		
 		logger.info("Resuming application done!");
 		response.sendRedirect("setup.html");
