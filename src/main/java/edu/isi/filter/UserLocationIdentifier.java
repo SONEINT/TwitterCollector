@@ -147,7 +147,7 @@ public class UserLocationIdentifier {
 //		String loc1 = "47.248612,-122.256781";
 //		String loc2 = "iPhone: 38.954477,-76.993023";
 //		String loc3 = "iPhone: 51.492901,-0.252436";
-//		String loc4 = "†T: 37.794653,-122.393264";
+//		String loc4 = "T: 37.794653,-122.393264";
 //		
 //		String re1=".*?";	// Non-greedy match on filler
 //	    String re2="([+-]?\\d*\\.\\d+)(?![-+0-9\\.])";	// Float 1
@@ -158,7 +158,7 @@ public class UserLocationIdentifier {
 //		String loc6 = "";
 //		String loc7 = "";
 //		String loc8 = "iPhone: 39.926037,-104.933586";
-//		String loc9 = "†T: 37.794653,-122.393264";
+//		String loc9 = "T: 37.794653,-122.393264";
 //		
 //		Pattern p = Pattern.compile(re1+re2+re3+re4,Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 //	    Matcher m = p.matcher(loc8);

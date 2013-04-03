@@ -10,6 +10,7 @@ import twitter4j.TwitterFactory;
 import twitter4j.conf.ConfigurationBuilder;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -76,7 +77,7 @@ public class HashTagTweetsFetcherThread implements Runnable {
 		currentThreadsColl.save(threadObj);
 		
 		while (true) {
-			DBCursor crsr = seedHashTagsColl.find().snapshot();
+			DBCursor crsr = seedHashTagsColl.find().addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 			while (crsr.hasNext()) {
 				DBObject seedHashtagObj = crsr.next();
 				String hashTagVal = seedHashtagObj.get(seedHashTags_SCHEMA.value.name()).toString();
