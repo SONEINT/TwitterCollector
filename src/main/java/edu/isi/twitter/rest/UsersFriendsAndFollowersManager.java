@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -42,7 +43,7 @@ public class UsersFriendsAndFollowersManager implements Runnable {
 			DBObject query = new BasicDBObject("onceDone", new BasicDBObject("$exists", false));
 			
 			while (true) {
-				DBCursor cursor = usersColl.find(query);
+				DBCursor cursor = usersColl.find(query).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 				while (cursor.hasNext()) {
 					DBObject user = cursor.next();
 					if(!user.containsField("uid")) {

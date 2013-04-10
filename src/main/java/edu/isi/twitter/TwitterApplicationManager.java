@@ -7,6 +7,7 @@ import java.util.List;
 import twitter4j.conf.ConfigurationBuilder;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -33,7 +34,7 @@ public class TwitterApplicationManager {
 			/** Get the applications access tokens and keys information **/
 			DBCollection appsColl = twitterDb.getCollection(TwitterCollections.applications.name());
 			long numberOfApps = appsColl.count();
-			DBCursor appsCursor = appsColl.find();
+			DBCursor appsCursor = appsColl.find().addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 			
 			for(int i=0; i<numberOfApps; i++) {
 				/*** Create the configuration builder object for each application ***/
@@ -91,7 +92,7 @@ public class TwitterApplicationManager {
 			DB twitterDb = m.getDB(dBName);
 			DBCollection appsColl = twitterDb.getCollection(TwitterCollections.applications.name());
 			
-			DBCursor appCursor = appsColl.find(new BasicDBObject(applications_SCHEMA.tag.name(), tag.name()));
+			DBCursor appCursor = appsColl.find(new BasicDBObject(applications_SCHEMA.tag.name(), tag.name())).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 			while(appCursor.hasNext()) {
 				appConfigs.add(buildConfigurationBuilder(appCursor.next()));
 			}

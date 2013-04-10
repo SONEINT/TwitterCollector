@@ -9,6 +9,7 @@ import java.net.UnknownHostException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -58,7 +59,7 @@ public class UserLocationExtractionTester {
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter("output.txt"));
 			BufferedWriter out2 = new BufferedWriter(new FileWriter("MiddleEastUsersList.txt"));
-			DBCursor usersC = usersColl.find().snapshot();
+			DBCursor usersC = usersColl.find().snapshot().addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 			while (usersC.hasNext()) {
 				usersCounter++;
 				if (usersCounter%10000 == 0 )

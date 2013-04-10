@@ -16,6 +16,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -61,7 +62,7 @@ public class GetStatisticsServlet extends HttpServlet {
 		try {
 			/** Get the tweets statistics **/
 			DBCollection statsColl = db.getCollection(TwitterCollections.tweetsStats.name());
-			DBCursor cursor = statsColl.find();
+			DBCursor cursor = statsColl.find().addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 			JSONObject outputObj = new JSONObject();
 			String tweetsStatus = "success"; 
 			if (cursor.count() == 0) {
@@ -82,7 +83,7 @@ public class GetStatisticsServlet extends HttpServlet {
 			
 			/** Get the link statistics **/
 			DBCollection linksStatsColl = db.getCollection(TwitterCollections.linksStats.name());
-			DBCursor linksCursor = linksStatsColl.find();
+			DBCursor linksCursor = linksStatsColl.find().addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 			
 			String linksStatus = "success"; 
 			if (linksCursor.count() == 0) {

@@ -11,6 +11,7 @@ import org.apache.lucene.queryParser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -70,14 +71,14 @@ public class UserLocationIdentifier {
 		
 		/** Populate list of known middle east timezones **/
 		DBCollection tz = twitterDb.getCollection(TwitterCollections.timezones.name());
-		DBCursor tzC = tz.find();
+		DBCursor tzC = tz.find().addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 		while (tzC.hasNext()) {
 			middleEastTimezones.add(tzC.next().get(timezones_SCHEMA.name.name()).toString());
 		}
 		
 		/** Populate list of known middle east country codes **/
 		DBCollection cc = twitterDb.getCollection(TwitterCollections.countryCodes.name());
-		DBCursor ccC = cc.find();
+		DBCursor ccC = cc.find().addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 		while (ccC.hasNext()) {
 			middleEastCountryCodes.add(ccC.next().get(countryCodes_SCHEMA.countryCode.name()).toString());
 		}

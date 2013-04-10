@@ -13,6 +13,7 @@ import twitter4j.Twitter;
 import twitter4j.TwitterException;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -134,7 +135,8 @@ public class UserNetworkFetcher {
 			} while ((cursor = ids.getNextCursor()) != 0);
 			
 			/** Get all the existing links of the user from the Database and Update the last_seen flag for the common links **/
-			DBCursor linkCursor = usersGraphColl.find(new BasicDBObject("uid", uid).append("link_type", link_type.name()));
+			DBCursor linkCursor = usersGraphColl.find(new BasicDBObject("uid", uid).append("link_type", 
+					link_type.name())).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 			boolean linkDBListEmpty = linkCursor.count() == 0 ? true : false;
 			List<Long> linkDBList = new ArrayList<Long>();
 			while (linkCursor.hasNext()) {

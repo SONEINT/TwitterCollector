@@ -1,39 +1,40 @@
 package edu.isi.webserver;
 
 import java.net.UnknownHostException;
-
-import org.joda.time.DateTime;
-import org.joda.time.Period;
-import org.joda.time.PeriodType;
-import org.joda.time.format.PeriodFormatter;
-import org.joda.time.format.PeriodFormatterBuilder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.mongodb.MongoException;
 
 public class TestPlayground {
 
 	public static void main(String[] args) throws UnknownHostException, MongoException {
-		DateTime d = new DateTime(2012, 10, 22, 2, 30);
-		DateTime now = new DateTime();
+		String regex = ".*?\\d+";
+		Pattern p = Pattern.compile(regex,Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+		Matcher m = p.matcher("asdasd_2");
+		System.out.println(m.group(0));
 		
-		PeriodFormatter pf = new PeriodFormatterBuilder()
-		    .appendDays()
-		    .appendSuffix(" day", " days")
-		    .appendSeparator(" ")
-		    .appendHours()
-		    .appendSuffix(" hour", " hours")
-		    .appendSeparator(" ")
-		    .appendMinutes()
-		    .appendSuffix(" minute", " minutes")
-		    .appendSeparator(" and ")
-		    .appendSeconds()
-		    .appendSuffix(" second", " seconds")
-		    .toFormatter();
-		
-		Period p = new Period(d,now, PeriodType.dayTime());
-		System.out.println(d);
-		System.out.println(now);
-		System.out.println(p.toString(pf));
+//		DateTime d = new DateTime(2012, 10, 22, 2, 30);
+//		DateTime now = new DateTime();
+//		
+//		PeriodFormatter pf = new PeriodFormatterBuilder()
+//		    .appendDays()
+//		    .appendSuffix(" day", " days")
+//		    .appendSeparator(" ")
+//		    .appendHours()
+//		    .appendSuffix(" hour", " hours")
+//		    .appendSeparator(" ")
+//		    .appendMinutes()
+//		    .appendSuffix(" minute", " minutes")
+//		    .appendSeparator(" and ")
+//		    .appendSeconds()
+//		    .appendSuffix(" second", " seconds")
+//		    .toFormatter();
+//		
+//		Period p = new Period(d,now, PeriodType.dayTime());
+//		System.out.println(d);
+//		System.out.println(now);
+//		System.out.println(p.toString(pf));
 		
 //		long[] users = {37032481};
 //		FilterQuery fltrQry = new FilterQuery(users);

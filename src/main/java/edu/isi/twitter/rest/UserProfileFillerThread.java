@@ -16,6 +16,7 @@ import twitter4j.User;
 import twitter4j.conf.ConfigurationBuilder;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -50,7 +51,7 @@ public class UserProfileFillerThread implements Runnable {
 			Twitter authenticatedTwitter = new TwitterFactory(cb.build()).getInstance();
 			
 			while (true) {
-				DBCursor cursor = usersWaitingListColl.find(query).snapshot();
+				DBCursor cursor = usersWaitingListColl.find(query).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 				
 				/******************* NEEDS TO BE TAKEN CARE OF LATER ***/
 				if (cursor.size() == 0)

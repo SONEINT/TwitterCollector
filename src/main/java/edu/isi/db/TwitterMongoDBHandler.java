@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -134,7 +135,7 @@ public class TwitterMongoDBHandler {
 		DBCollection coll = db.getCollection(TwitterCollections.seedHashTags.name());
 		
 		List<String> seedTags = new ArrayList<String>();
-		DBCursor cursor = coll.find().snapshot();
+		DBCursor cursor = coll.find().addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 		
         try {
             while(cursor.hasNext()) {
@@ -167,7 +168,7 @@ public class TwitterMongoDBHandler {
 		Set<Long> userIds = new HashSet<Long>();
 		
 		/** First add the seed users to the list **/
-		DBCursor cursor = coll.find(new BasicDBObject(users_SCHEMA.source.name(), USER_SOURCE.Seed.name()));
+		DBCursor cursor = coll.find(new BasicDBObject(users_SCHEMA.source.name(), USER_SOURCE.Seed.name())).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 	    while(cursor.hasNext()) {
         	DBObject obj = cursor.next();
         	if(obj.containsField(users_SCHEMA.uid.name())) {

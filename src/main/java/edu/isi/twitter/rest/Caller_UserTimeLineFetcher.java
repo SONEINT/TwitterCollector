@@ -8,6 +8,7 @@ import twitter4j.TwitterFactory;
 import twitter4j.conf.ConfigurationBuilder;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -70,7 +71,7 @@ public class Caller_UserTimeLineFetcher {
 			
 			while (true) {
 				System.out.println("starting agin ...");
-				DBCursor c = usersColl.find();
+				DBCursor c = usersColl.find().addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 				while (c.hasNext()) {
 					DBObject usr = c.next();
 					long uid = Long.parseLong(usr.get("uid").toString());

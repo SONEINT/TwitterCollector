@@ -15,6 +15,7 @@ import twitter4j.User;
 import twitter4j.conf.ConfigurationBuilder;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -171,7 +172,7 @@ public class WebappStartupManager {
 		DBCollection seedUsersColl = db.getCollection(TwitterCollections.seedUsers.name());
 		DBCollection usersColl = db.getCollection(TwitterCollections.users.name());
 		
-		DBCursor cursor = seedUsersColl.find();
+		DBCursor cursor = seedUsersColl.find().addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 		if (cursor.count() == 0) 
 			return;
 

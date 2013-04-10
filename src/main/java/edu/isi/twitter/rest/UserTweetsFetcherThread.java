@@ -17,6 +17,7 @@ import twitter4j.TwitterFactory;
 import twitter4j.conf.ConfigurationBuilder;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -210,7 +211,7 @@ public class UserTweetsFetcherThread implements Runnable {
 
 		DBCursor c = usersListColl.find()
 						.sort(new BasicDBObject(users_SCHEMA.nextUpdateTweetFetcherDate.name(), 1))
-						.limit(USER_LIST_COUNT);
+						.limit(USER_LIST_COUNT).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 		
 		while (c.hasNext()) {
 			DBObject user = c.next();
@@ -221,7 +222,8 @@ public class UserTweetsFetcherThread implements Runnable {
         	ids.add(uid);
 		}
 		// Remove the ids currently being covered by other threads
-		DBCursor cCurrThreads = currentThreadsColl.find(new BasicDBObject(currentThreads_SCHEMA.type.name(), THREAD_TYPE.TweetFetcher.name()));
+		DBCursor cCurrThreads = currentThreadsColl.find(new BasicDBObject(currentThreads_SCHEMA.type.name(), 
+				THREAD_TYPE.TweetFetcher.name())).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 		while (cCurrThreads.hasNext()) {
 			DBObject thread = cCurrThreads.next();
 			try {

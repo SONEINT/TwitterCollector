@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -45,7 +46,7 @@ public class UsersWaitingListManager implements Runnable {
 			Filter filter = config.getFilter();
 			
 			while (true) {
-				DBCursor cursor = usersWaitingListColl.find(query);
+				DBCursor cursor = usersWaitingListColl.find(query).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 				
 				/** For each user, check if the filter needs to be applied, check if the user needs to be added to the users collection **/
 				while (cursor.hasNext()) {
