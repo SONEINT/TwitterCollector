@@ -238,9 +238,12 @@ public class WebappStartupManager {
 	
 	private void runUserProfileFillerThread() {
 		logger.info("Starting User profile lokup thread...");
-		Thread t = new Thread(new UserProfileFillerThread(TwitterApplicationManager.getOneConfigurationBuilderByTag(ApplicationTag.UserProfileLookup
-				, appConfig.getDBName()), appConfig));
-		t.start();
+		List<ConfigurationBuilder> allConfigs = TwitterApplicationManager.getAllConfigurationBuildersByTag(ApplicationTag.UserProfileLookup
+				, appConfig.getDBName());
+		for (int i=0; i<allConfigs.size(); i++) {
+			Thread t = new Thread(new UserProfileFillerThread(allConfigs.get(i), appConfig));
+			t.start();
+		}
 	}
 	
 	private void runUserNetworkFetcherThread() {
