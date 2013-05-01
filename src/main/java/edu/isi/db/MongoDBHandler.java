@@ -13,9 +13,9 @@ public class MongoDBHandler {
 	public static Mongo getNewMongoConnection() throws UnknownHostException, MongoException {
 		MongoOptions opt = new MongoOptions();
 		opt.setAutoConnectRetry(true);
+		opt.setAlwaysUseMBeans(true);
 		int connectTimeoutDur = new Long(TimeUnit.SECONDS.toMillis(30)).intValue();
 		opt.setConnectTimeout(connectTimeoutDur);
 		return new Mongo(HOSTNAME, opt);
 	}
-
 }
