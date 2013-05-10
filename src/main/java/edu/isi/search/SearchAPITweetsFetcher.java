@@ -125,7 +125,7 @@ public class SearchAPITweetsFetcher {
 							}
 						}
 						
-						// Add to hashtagtweets table if the sesrch entity is a hashtag
+						// Add to hashtagtweets table if the search entity is a hashtag
 						if (queryType == QUERY_TYPE.hashTag) {
 							TwitterMongoDBHandler.addTohashTagTweetsTable(hashtagTweetsColl, queryString, tweet.getId(), 
 									tweet.getUser().getId(), now.getMillis(), tweet.getCreatedAt().getTime());
@@ -142,6 +142,9 @@ public class SearchAPITweetsFetcher {
 						else {
 							logger.error("Mongo Exception: " + e.getMessage());
 						}
+					} catch (Exception e) {
+						logger.error("Error occured while saving hashtags tweets.", e);
+						e.printStackTrace();
 					}
 				}
             	
