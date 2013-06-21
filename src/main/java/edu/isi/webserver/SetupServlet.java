@@ -200,8 +200,6 @@ public class SetupServlet extends HttpServlet {
 				if (seedTag.trim().equals(""))
 					continue;
 				try {
-					if (!seedTag.startsWith("#"))
-						seedTag = "#" + seedTag;
 					seedHashTagssColl.insert(new BasicDBObject(seedHashTags_SCHEMA.value.name(), seedTag));
 				} catch (MongoException e) {
 					if (e.getCode() == 11000) {
