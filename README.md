@@ -24,17 +24,17 @@ Once all the parameters has been specified, deploy the application to start coll
 
 ### Setup Screenshot ###
 
-<img alt="Demo picture" src="http://isi.edu/~shubhamg/tweet-collector-setup.png" width="50%" height="45%">
+<img alt="Demo picture" src="http://isi.edu/~shubhamg/docs/tweet-collector-setup.png" width="50%" height="45%">
 
 ### Add Application Screenshot ###
 
-<img alt="Demo picture" src="http://isi.edu/~shubhamg/add-application.png" width="60%" height="34%">
+<img alt="Demo picture" src="http://isi.edu/~shubhamg/docs/add-application.png" width="60%" height="34%">
 
 ## Monitoring the Application ##
 
 Once the application has started, you can monitor the tweet/network collection by clicking on the Statistics link present in the top menu of the webpage. It shows interactive graphs and provides some numerical stats about the data collection. An example statistics webpage screenshot:
 
-<img alt="Demo picture" src="http://isi.edu/~shubhamg/stats.png" width="90%" height="50%">
+<img alt="Demo picture" src="http://isi.edu/~shubhamg/docs/stats.png" width="90%" height="50%">
 
 ## Description of MongoDB Collections ##
 
